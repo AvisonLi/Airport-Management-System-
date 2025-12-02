@@ -435,7 +435,8 @@ app.get('/passenger', requirePassengerAuth, async (req, res) => {
       title: 'Passenger Portal - HKAP Airlines',
       user: req.session.user,
       bookings: bookingsWithDetails,
-      activeSection: 'dashboard'
+      activeSection: 'dashboard',
+      baggageItems: [] 
     });
   } catch (error) {
     console.error('Error loading passenger portal:', error);
@@ -447,10 +448,15 @@ app.get('/passenger', requirePassengerAuth, async (req, res) => {
 // CHECK-IN ROUTES
 // ============================================
 app.get('/checkin', requireAuth, (req, res) => {
-  res.render('checkin', { 
-    title: 'Online Check-in',
-    user: req.session.user 
-  });
+  if (req.session.user.role === 'passenger') {
+    res.render('checkin', { 
+      title: 'Online Check-in',
+      user: req.session.user,
+      activeTab: 'checkin-page'  
+    });
+  } else {
+    res.redirect('/dashboard');
+  }
 });
 
 // ============================================
