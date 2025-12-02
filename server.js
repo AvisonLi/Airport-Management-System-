@@ -1532,11 +1532,13 @@ app.get('/passenger/boarding-passes', requirePassengerAuth, async (req, res) => 
     }));
 
     res.render('passenger', {
-      title: 'Boarding Passes - HKAP Airlines',
-      user: req.session.user,
-      boardingPasses: passesWithDetails,
-      activeTab: 'boarding-passes'
-    });
+  title: `Boarding Pass - ${bookingRef}`,
+  user: req.session.user,
+  userDetails: userDetails,
+  boardingPasses: [formattedBoardingPass], // Single item array
+  activeTab: 'boarding-passes',
+  stats: stats
+});
   } catch (error) {
     console.error('Error loading boarding passes:', error);
     res.status(500).send('Server error');
@@ -1934,4 +1936,104 @@ app.get('/api/passenger/export-data', requirePassengerAuth, async (req, res) => 
 // ============================================
 app.get('/passenger', requirePassengerAuth, (req, res) => {
   res.redirect('/passenger/dashboard');
+});
+/// ============================================
+// VIEW SINGLE BOARDING PASS BY REFERENCE 
+// ============================================
+app.get('/passenger/boarding-pass/:bookingRef', requirePassengerAuth, async (req, res) => {
+  try {
+    const bookingRef = req.params.bookingRef;
+    const passengerId = req.session.user.id;
+    
+    console.log('Fetching boarding pass for booking reference:', bookingRef);
+    
+    const boardingPassCollection = getCollection(collections.boardingPasses);
+    const bookingsCollection = getCollection(collections.bookings);
+    const flightsCollection = getCollection(collections.flights);
+    const usersCollection = getCollection(collections.users);
+
+    // First, verify the booking belongs to this passenger
+    const booking = await bookingsCollection.findOne({
+      booking_reference: bookingRef,
+      passenger_id: passengerId
+    });
+
+    if (!booking) {
+      return res.status(404).send('Boarding pass not found or you do not have permission to view it.');
+    }
+
+    // Get the boarding pass
+    const boardingPass = await boardingPassCollection.findOne({
+      booking_reference: bookingRef
+    });
+
+    if (!boardingPass) {
+      return res.status(404).send('No boarding pass found for this booking. Please complete check-in first.');
+    }
+
+    // Get flight details
+    const flight = await flightsCollection.findOne({
+      flight_code: boardingPass.flight_code
+    });
+
+    // Get user details
+    const userDetails = await usersCollection.findOne({
+      user_id: passengerId
+    });
+
+    // Get bookings for the passenger (to satisfy the template requirement)
+    const bookings = await bookingsCollection.find({ 
+      passenger_id: passengerId 
+    }).sort({ booking_date: -1 }).toArray();
+
+    // Format dates and times
+    const flightDate = boardingPass.flight_date ? new Date(boardingPass.flight_date) : null;
+    const boardingTime = boardingPass.boarding_time || calculateBoardingTime(boardingPass.departure_time);
+    const generatedAt = boardingPass.generated_at ? new Date(boardingPass.generated_at) : null;
+
+    const formattedBoardingPass = {
+      ...boardingPass,
+      flight_details: flight || { flight_code: boardingPass.flight_code, route_display: 'Unknown Route' },
+      booking_details: booking,
+      flight_date_formatted: flightDate ? flightDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }) : 'Not set',
+      departure_time_formatted: boardingPass.departure_time || 'TBA',
+      boarding_time_formatted: boardingTime,
+      generated_at_formatted: generatedAt ?
+        generatedAt.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }) : 'Not set',
+      barcode_display: boardingPass.barcode ? `|| ${boardingPass.barcode} ||` : `|| ${bookingRef} ||`
+    };
+
+    // Calculate stats for the passenger
+    const now = new Date();
+    const stats = {
+      total_bookings: bookings.length,
+      upcoming_flights: bookings.filter(b => {
+        const flightDate = b.flight_date ? new Date(b.flight_date) : null;
+        return flightDate && flightDate > now;
+      }).length,
+      checked_in: bookings.filter(b => b.booking_status === 'checked_in' || b.booking_status === 'boarded').length,
+      miles_earned: bookings.reduce((total, b) => total + (b.total_amount || 0) * 5, 0)
+    };
+
+   // In your route, change the render call to:
+res.render('boarding-pass-single', {
+    title: `Boarding Pass - ${bookingRef}`,
+    user: req.session.user,
+    boardingPasses: [formattedBoardingPass],
+    bookingRef: bookingRef
+});
+  } catch (error) {
+    console.error('Error loading boarding pass:', error);
+    res.status(500).send('An error occurred while loading the boarding pass.');
+  }
 });

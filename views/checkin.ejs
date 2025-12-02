@@ -443,569 +443,591 @@
     </div>
 
     <script>
-        let currentStep = 1;
-        let selectedSeat = null;
-        let selectedBaggage = 'none';
-        let bookingData = null;
+    let currentStep = 1;
+    let selectedSeat = null;
+    let selectedBaggage = 'none';
+    let bookingData = null;
 
-        // Step Navigation
-        function nextStep(step) {
-            // Validate current step before proceeding
-            if (!validateStep(currentStep)) {
-                return;
-            }
-
-            // Hide current step
-            document.getElementById(`step-${currentStep}`).classList.remove('active');
-            document.getElementById(`step-indicator-${currentStep}`).classList.remove('active');
-            document.getElementById(`step-indicator-${currentStep}`).classList.add('completed');
-
-            // Show next step
-            currentStep = step;
-            document.getElementById(`step-${currentStep}`).classList.add('active');
-            document.getElementById(`step-indicator-${currentStep}`).classList.add('active');
-
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Step Navigation Functions
+    function nextStep(step) {
+        // Validate current step before proceeding
+        if (!validateStep(currentStep)) {
+            return;
         }
 
-        function previousStep(step) {
-            // Hide current step
-            document.getElementById(`step-${currentStep}`).classList.remove('active');
-            document.getElementById(`step-indicator-${currentStep}`).classList.remove('active');
+        // Hide current step
+        document.getElementById(`step-${currentStep}`).classList.remove('active');
+        document.getElementById(`step-indicator-${currentStep}`).classList.remove('active');
+        document.getElementById(`step-indicator-${currentStep}`).classList.add('completed');
 
-            // Show previous step
-            currentStep = step;
-            document.getElementById(`step-${currentStep}`).classList.add('active');
-            document.getElementById(`step-indicator-${currentStep}`).classList.add('active');
-            document.getElementById(`step-indicator-${currentStep}`).classList.remove('completed');
+        // Show next step
+        currentStep = step;
+        document.getElementById(`step-${currentStep}`).classList.add('active');
+        document.getElementById(`step-indicator-${currentStep}`).classList.add('active');
 
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-        function validateStep(step) {
-            switch(step) {
-                case 1:
-                    const bookingRef = document.getElementById('booking-ref').value;
-                    const fullName = document.getElementById('full-name').value;
-                    if (!bookingRef || !fullName) {
-                        alert('Please fill in all required fields');
-                        return false;
-                    }
-                    return true;
-                case 2:
-                    const form = document.getElementById('passenger-info-form');
-                    if (!form.checkValidity()) {
-                        alert('Please fill in all required fields correctly');
-                        return false;
-                    }
-                    return true;
-                case 3:
-                    if (!selectedSeat) {
-                        alert('Please select a seat');
-                        return false;
-                    }
-                    return true;
-                default:
-                    return true;
-            }
-        }
+    function previousStep(step) {
+        // Hide current step
+        document.getElementById(`step-${currentStep}`).classList.remove('active');
+        document.getElementById(`step-indicator-${currentStep}`).classList.remove('active');
 
-        async function verifyBooking() {
-            const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
-            const fullName = document.getElementById('full-name').value.trim();
+        // Show previous step
+        currentStep = step;
+        document.getElementById(`step-${currentStep}`).classList.add('active');
+        document.getElementById(`step-indicator-${currentStep}`).classList.add('active');
+        document.getElementById(`step-indicator-${currentStep}`).classList.remove('completed');
 
-            if (!bookingRef || !fullName) {
-                alert('Please fill in all fields');
-                return;
-            }
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-            try {
-                const response = await fetch('/api/verify-booking', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ bookingRef, fullName })
-                });
-
-                const data = await response.json();
-                
-                console.log('Full response:', data); // Debug log
-
-                if (response.ok) {
-                    bookingData = data.booking;
-                    console.log('Booking data structure:', bookingData); // Debug log
-                    
-                    if (!bookingData) {
-                        alert('Booking data is empty or undefined');
-                        return;
-                    }
-                    
-                    populateFlightInfo(bookingData);
-                    nextStep(2);
-                } else {
-                    // Show the specific error message from backend
-                    alert(data.message || 'Booking not found. Please check your details.');
+    function validateStep(step) {
+        switch(step) {
+            case 1:
+                const bookingRef = document.getElementById('booking-ref').value;
+                const fullName = document.getElementById('full-name').value;
+                if (!bookingRef || !fullName) {
+                    alert('Please fill in all required fields');
+                    return false;
                 }
-            } catch (error) {
-                console.error('Error details:', error);
-                alert('An error occurred. Please try again. Check console for details.');
-            }
+                return true;
+            case 2:
+                const form = document.getElementById('passenger-info-form');
+                if (!form.checkValidity()) {
+                    alert('Please fill in all required fields correctly');
+                    return false;
+                }
+                return true;
+            case 3:
+                if (!selectedSeat) {
+                    alert('Please select a seat');
+                    return false;
+                }
+                return true;
+            default:
+                return true;
         }
-        function populateFlightInfo(booking) {
-        // Log the booking data to see what's actually coming from backend
-        console.log('Booking data received:', booking);
+    }
+// ============================================
+// VIEW BOARDING PASS FUNCTION
+// ============================================
+window.viewBoardingPass = function(bookingRef) {
+    // Validate the booking reference
+    if (!bookingRef || bookingRef.trim() === '') {
+        alert('Booking reference is required');
+        return;
+    }
+    
+    // Clean up the booking reference
+    const cleanBookingRef = bookingRef.trim().toUpperCase();
+    console.log('Viewing boarding pass for booking:', cleanBookingRef);
+    
+    // Construct the URL
+    const url = `/passenger/boarding-pass/${encodeURIComponent(cleanBookingRef)}`;
+    
+    // Optional: Show a loading message
+    const button = event ? event.target : null;
+    if (button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        button.disabled = true;
         
-        // Make sure we're using the correct field names from your database
-        // The backend console log shows what field names are in the document
+        // Navigate after a short delay to show the loading state
+        setTimeout(() => {
+            window.location.href = url;
+        }, 500);
+    } else {
+        // Navigate immediately if no button clicked (programmatic call)
+        window.location.href = url;
+    }
+};
+    // Booking Verification Function
+    async function verifyBooking() {
+        const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
+        const fullName = document.getElementById('full-name').value.trim();
+
+        if (!bookingRef || !fullName) {
+            showAlert('Please fill in all fields', 'error');
+            return;
+        }
+
+        // Show loading state
+        const verifyBtn = document.querySelector('.btn-next');
+        const originalText = verifyBtn.innerHTML;
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+
+        try {
+            const response = await fetch('/api/verify-booking', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    bookingRef: bookingRef, 
+                    fullName: fullName 
+                })
+            });
+
+            const data = await response.json();
+            
+            console.log('Verification response:', data);
+            
+            // Reset button
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = originalText;
+            
+            if (data.success && data.booking) {
+                bookingData = data.booking;
+                console.log('Booking data:', bookingData);
+                
+                // Populate flight information
+                populateFlightInfo(bookingData);
+                
+                // Pre-fill passenger information
+                prefillPassengerInfo(bookingData);
+                
+                // Move to next step
+                nextStep(2);
+                
+                showAlert('Booking verified successfully!', 'success');
+            } else {
+                showAlert(data.message || 'Booking verification failed', 'error');
+            }
+        } catch (error) {
+            console.error('Error verifying booking:', error);
+            
+            // Reset button
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = originalText;
+            
+            showAlert('An error occurred. Please try again.', 'error');
+        }
+    }
+
+    // Populate Flight Information
+    function populateFlightInfo(booking) {
+        console.log('Populating flight info with:', booking);
+        
+        // Set origin and destination
         document.getElementById('origin-code').textContent = booking.origin || booking.departure_airport || 'N/A';
         document.getElementById('destination-code').textContent = booking.destination || booking.arrival_airport || 'N/A';
-        document.getElementById('flight-number').textContent = booking.flightNumber || booking.flight_number || 'N/A';
+        document.getElementById('flight-number').textContent = booking.flight_code || booking.flight_number || 'N/A';
         
-        // Parse date - handle different date formats
-        const flightDate = new Date(booking.date || booking.flight_date || booking.departure_date);
+        // Format and set date
+        const flightDate = booking.flight_date ? new Date(booking.flight_date) : new Date();
         document.getElementById('flight-date').textContent = flightDate.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
             year: 'numeric'
         });
         
-        document.getElementById('departure-time').textContent = booking.departureTime || booking.departure_time || 'N/A';
-        document.getElementById('passenger-name').textContent = booking.passengerName || 
-            `${booking.first_name || ''} ${booking.last_name || ''}`.trim() || 'N/A';
-
-        // Pre-fill passenger info
-        const names = booking.passengerName ? booking.passengerName.split(' ') : 
-                    [(booking.first_name || ''), (booking.last_name || '')];
+        // Set departure time
+        document.getElementById('departure-time').textContent = booking.departure_time || '09:00';
         
-        if (names[0]) {
-            document.getElementById('first-name').value = names[0];
-        }
-        if (names.length > 1) {
-            document.getElementById('last-name-confirm').value = names.slice(1).join(' ');
-        }
-    }
-
-        // Complete Check-in
-        async function completeCheckin() {
-            try {
-                const response = await fetch('/api/complete-checkin', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        bookingRef: document.getElementById('booking-ref').value,
-                        seat: selectedSeat,
-                        baggage: selectedBaggage
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    populateBoardingPass(data.boardingPass);
-                    nextStep(4);
-                } else {
-                    alert(data.message || 'Check-in failed. Please try again.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
-            }
-        }
-
-        function populateBoardingPass(bp) {
-    console.log('Populating boarding pass with:', bp);
-    
-    // Basic flight info
-    document.getElementById('bp-origin').textContent = bp.origin || 'HKG';
-    document.getElementById('bp-destination').textContent = bp.destination || 'TPE';
-    document.getElementById('bp-passenger').textContent = bp.passenger ? bp.passenger.toUpperCase() : 'PASSENGER';
-    document.getElementById('bp-flight').textContent = bp.flight || bp.flightNumber || 'N/A';
-    
-    // Format date for boarding pass (short format: 15 DEC)
-    if (bp.date) {
-        const date = new Date(bp.date);
-        const shortDate = date.toLocaleDateString('en-US', {
+        // Set passenger name
+        document.getElementById('passenger-name').textContent = booking.passenger_name || 'Passenger';
+        
+        // Also update boarding pass section
+        document.getElementById('bp-origin').textContent = booking.origin || booking.departure_airport || 'TPE';
+        document.getElementById('bp-destination').textContent = booking.destination || booking.arrival_airport || 'NRT';
+        document.getElementById('bp-flight').textContent = booking.flight_code || booking.flight_number || 'CI100';
+        
+        // Format date for boarding pass (e.g., "15 DEC")
+        const bpDate = flightDate.toLocaleDateString('en-US', {
             day: 'numeric',
             month: 'short'
         }).toUpperCase();
-        document.getElementById('bp-date').textContent = shortDate;
+        document.getElementById('bp-date').textContent = bpDate;
     }
-    
-    // Time and gate
-    document.getElementById('bp-time').textContent = bp.time || bp.departureTime || '09:00';
-    document.getElementById('bp-gate').textContent = bp.gate || 'TBA';
-    
-    // Seat - make sure it's a string, not an object
-    let seatNumber = 'N/A';
-    if (typeof bp.seat === 'string') {
-        seatNumber = bp.seat;
-    } else if (bp.seat && typeof bp.seat === 'object') {
-        // If seat is an object, get the seat number property
-        seatNumber = bp.seat.seat || bp.seat.number || 'N/A';
-    }
-    document.getElementById('bp-seat').textContent = seatNumber;
-    
-    // Boarding time
-    document.getElementById('bp-boarding').textContent = bp.boardingTime || '08:30';
-    
-    // Cabin class
-    let cabinClass = 'ECONOMY';
-    if (bp.cabinClass) {
-        cabinClass = bp.cabinClass.toUpperCase();
-    } else if (bp.seat && bp.seat.cabin) {
-        cabinClass = bp.seat.cabin.toUpperCase();
-    } else if (bp.cabin) {
-        cabinClass = bp.cabin.toUpperCase();
-    }
-    document.getElementById('bp-class').textContent = cabinClass;
-    
-    // Barcode
-    document.getElementById('bp-barcode').textContent = bp.barcode ? `|| ${bp.barcode} ||` : '|| SCAN AT GATE ||';
-}
-// Seat Selection Functions
-function selectSeat(seatNumber) {
-    // Remove selected class from all seats
-    document.querySelectorAll('.seat').forEach(seat => {
-        seat.classList.remove('selected');
-    });
-    
-    // Add selected class to clicked seat
-    const seatElement = document.querySelector(`.seat[data-seat="${seatNumber}"]`);
-    if (seatElement) {
-        seatElement.classList.add('selected');
-        selectedSeat = seatNumber;
+
+    // Pre-fill Passenger Information
+    function prefillPassengerInfo(booking) {
+        const passengerName = booking.passenger_name || '';
+        const nameParts = passengerName.split(' ');
         
-        // Show seat selection info
-        document.getElementById('seat-selected-info').style.display = 'block';
-        document.getElementById('selected-seat-number').textContent = seatNumber;
-        
-        // Calculate seat fee
-        let seatFee = 0;
-        if (seatElement.classList.contains('premium')) {
-            seatFee = 50;
+        // Set first name (first part)
+        if (nameParts.length > 0) {
+            document.getElementById('first-name').value = nameParts[0];
         }
-        document.getElementById('selected-seat-fee').textContent = seatFee;
         
-        // Enable complete check-in button
-        document.getElementById('btn-complete-checkin').disabled = false;
-    }
-}
-
-function selectBaggage(baggageType) {
-    selectedBaggage = baggageType;
-    
-    // Remove selected class from all baggage options
-    document.querySelectorAll('.baggage-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    
-    // Add selected class to clicked option
-    const baggageOption = event.currentTarget || event.target.closest('.baggage-option');
-    baggageOption.classList.add('selected');
-    
-    // Also check the radio button
-    const radioButton = baggageOption.querySelector('input[type="radio"]');
-    if (radioButton) {
-        radioButton.checked = true;
-    }
-}
-
-// Add CSS for selected baggage option
-const style = document.createElement('style');
-style.textContent = `
-    .baggage-option.selected {
-        border-color: #3b82f6;
-        background-color: #eff6ff;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-    }
-    .baggage-option.selected .baggage-price {
-        color: #3b82f6;
-        font-weight: bold;
-    }
-`;
-document.head.appendChild(style);
-
-// Initialize seat selection
-document.addEventListener('DOMContentLoaded', function() {
-    // Set default baggage selection
-    selectBaggage('none');
-    
-    // Add click handlers to seats
-    document.querySelectorAll('.seat:not(.occupied):not(.aisle)').forEach(seat => {
-        seat.addEventListener('click', function() {
-            selectSeat(this.dataset.seat);
-        });
-    });
-    
-    // Add click handlers to baggage options
-    document.querySelectorAll('.baggage-option').forEach(option => {
-        option.addEventListener('click', function() {
-            const value = this.querySelector('input[type="radio"]').value;
-            selectBaggage(value);
-        });
-    });
-});
-
-async function verifyBooking() {
-    const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
-    const fullName = document.getElementById('full-name').value.trim();
-
-    if (!bookingRef || !fullName) {
-        showAlert('Please fill in all fields', 'error');
-        return;
-    }
-
-    // Show loading state
-    const verifyBtn = document.querySelector('.btn-next');
-    const originalText = verifyBtn.innerHTML;
-    verifyBtn.disabled = true;
-    verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
-
-    try {
-        const response = await fetch('/api/verify-booking', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                bookingRef: bookingRef, 
-                fullName: fullName 
-            })
-        });
-
-        const data = await response.json();
+        // Set full name confirm
+        document.getElementById('full-name-confirm').value = passengerName;
         
-        console.log('Verification response:', data);
-        
-        // Reset button
-        verifyBtn.disabled = false;
-        verifyBtn.innerHTML = originalText;
-        
-        if (data.success && data.booking) {
-            bookingData = data.booking;
-            console.log('Booking data:', bookingData);
-            
-            // Populate flight information
-            populateFlightInfo(bookingData);
-            
-            // Pre-fill passenger information
-            prefillPassengerInfo(bookingData);
-            
-            // Move to next step
-            nextStep(2);
-            
-            showAlert('Booking verified successfully!', 'success');
-        } else {
-            showAlert(data.message || 'Booking verification failed', 'error');
+        // Also try to fill other fields if available in booking data
+        if (booking.passport) {
+            document.getElementById('passport').value = booking.passport;
         }
-    } catch (error) {
-        console.error('Error verifying booking:', error);
-        
-        // Reset button
-        verifyBtn.disabled = false;
-        verifyBtn.innerHTML = originalText;
-        
-        showAlert('An error occurred. Please try again.', 'error');
+        if (booking.email) {
+            document.getElementById('email').value = booking.email;
+        }
+        if (booking.date_of_birth) {
+            document.getElementById('dob').value = booking.date_of_birth;
+        }
+        if (booking.nationality) {
+            document.getElementById('nationality').value = booking.nationality;
+        }
     }
-}
 
-// Helper function to show alerts
-function showAlert(message, type = 'info') {
-    // Remove existing alerts
-    const existingAlerts = document.querySelectorAll('.custom-alert');
-    existingAlerts.forEach(alert => alert.remove());
-    
-    // Create alert element
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `custom-alert alert-${type}`;
-    alertDiv.innerHTML = `
-        <div class="alert-content">
-            <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
-            <span>${message}</span>
-            <button class="alert-close">&times;</button>
-        </div>
-    `;
-    
-    // Add to page
-    document.querySelector('.checkin-container').prepend(alertDiv);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        if (alertDiv.parentElement) {
+    // Complete Check-in Function
+    async function completeCheckin() {
+        if (!selectedSeat) {
+            alert('Please select a seat');
+            return;
+        }
+        
+        const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
+        const fullName = document.getElementById('full-name').value.trim();
+        const passport = document.getElementById('passport') ? document.getElementById('passport').value : '';
+        
+        if (!bookingRef || !fullName) {
+            alert('Please verify your booking first');
+            return;
+        }
+        
+        // Determine seat type and fee
+        const seatElement = document.querySelector(`.seat[data-seat="${selectedSeat}"]`);
+        const isPremiumSeat = seatElement ? seatElement.classList.contains('premium') : false;
+        const seatFee = isPremiumSeat ? 50 : 0;
+        const cabinClass = isPremiumSeat ? 'Premium' : 'Economy';
+        
+        // Determine baggage
+        let baggageWeight = 0;
+        let baggageFee = 0;
+        let baggageType = 'carry-on';
+        
+        switch(selectedBaggage) {
+            case '20kg':
+                baggageWeight = 20;
+                baggageFee = 30;
+                baggageType = 'checked';
+                break;
+            case '32kg':
+                baggageWeight = 32;
+                baggageFee = 50;
+                baggageType = 'checked';
+                break;
+            default:
+                baggageWeight = 7;
+                baggageFee = 0;
+                baggageType = 'carry-on';
+        }
+        
+        // Get passenger info from form
+        const passengerName = document.getElementById('full-name-confirm').value;
+        const firstName = document.getElementById('first-name').value;
+        const nationality = document.getElementById('nationality').value;
+        const dob = document.getElementById('dob').value;
+        const email = document.getElementById('email').value;
+        
+        // Show loading state
+        const button = document.getElementById('btn-complete-checkin');
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        try {
+            const response = await fetch('/api/complete-checkin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    passenger: {
+                        name: passengerName,
+                        firstName: firstName,
+                        bookingRef: bookingRef,
+                        passport: passport,
+                        nationality: nationality,
+                        dateOfBirth: dob,
+                        email: email
+                    },
+                    seat: {
+                        seat: selectedSeat,
+                        cabin: cabinClass,
+                        fee: seatFee
+                    },
+                    baggage: {
+                        type: baggageType,
+                        weight: baggageWeight,
+                        fee: baggageFee
+                    }
+                })
+            });
+            
+            const data = await response.json();
+            
+            // Reset button
+            button.disabled = false;
+            button.innerHTML = originalText;
+            
+            if (data.success && data.boardingPass) {
+                console.log('Boarding pass data received:', data.boardingPass);
+                populateBoardingPass(data.boardingPass);
+                nextStep(4);
+            } else {
+                alert(data.message || 'Check-in failed. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error completing check-in:', error);
+            button.disabled = false;
+            button.innerHTML = originalText;
+            alert('An error occurred during check-in. Please try again.');
+        }
+    }
+
+    // Populate Boarding Pass
+    function populateBoardingPass(bp) {
+        console.log('Populating boarding pass with:', bp);
+        
+        // Basic flight info
+        document.getElementById('bp-origin').textContent = bp.origin || 'TPE';
+        document.getElementById('bp-destination').textContent = bp.destination || 'NRT';
+        document.getElementById('bp-passenger').textContent = bp.passenger ? bp.passenger.toUpperCase() : 'PASSENGER';
+        document.getElementById('bp-flight').textContent = bp.flight || bp.flightNumber || 'CI100';
+        
+        // Format date for boarding pass (short format: 15 DEC)
+        if (bp.date) {
+            const date = new Date(bp.date);
+            const shortDate = date.toLocaleDateString('en-US', {
+                day: 'numeric',
+                month: 'short'
+            }).toUpperCase();
+            document.getElementById('bp-date').textContent = shortDate;
+        }
+        
+        // Time and gate
+        document.getElementById('bp-time').textContent = bp.time || bp.departureTime || '09:00';
+        document.getElementById('bp-gate').textContent = bp.gate || 'B12';
+        
+        // Seat
+        let seatNumber = '12A'; // Default
+        if (typeof bp.seat === 'string') {
+            seatNumber = bp.seat;
+        } else if (bp.seat && typeof bp.seat === 'object') {
+            seatNumber = bp.seat.seat || bp.seat.number || '12A';
+        }
+        document.getElementById('bp-seat').textContent = seatNumber;
+        
+        // Boarding time (30 minutes before departure by default)
+        document.getElementById('bp-boarding').textContent = bp.boardingTime || '08:30';
+        
+        // Cabin class
+        let cabinClass = 'Economy';
+        if (bp.cabinClass) {
+            cabinClass = bp.cabinClass;
+        } else if (bp.seat && bp.seat.cabin) {
+            cabinClass = bp.seat.cabin;
+        } else if (bp.cabin) {
+            cabinClass = bp.cabin;
+        }
+        document.getElementById('bp-class').textContent = cabinClass;
+        
+        // Barcode - use booking reference or generate one
+        document.getElementById('bp-barcode').textContent = bp.barcode ? `|| ${bp.barcode} ||` : `|| ${bookingRef || 'ABC123456789'} ||`;
+    }
+
+    // Seat Selection Functions
+    function selectSeat(seatNumber) {
+        // Remove selected class from all seats
+        document.querySelectorAll('.seat').forEach(seat => {
+            seat.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked seat
+        const seatElement = document.querySelector(`.seat[data-seat="${seatNumber}"]`);
+        if (seatElement) {
+            seatElement.classList.add('selected');
+            selectedSeat = seatNumber;
+            
+            // Show seat selection info
+            document.getElementById('seat-selected-info').style.display = 'block';
+            document.getElementById('selected-seat-number').textContent = seatNumber;
+            
+            // Calculate seat fee
+            let seatFee = 0;
+            if (seatElement.classList.contains('premium')) {
+                seatFee = 50;
+            }
+            document.getElementById('selected-seat-fee').textContent = seatFee;
+            
+            // Enable complete check-in button
+            document.getElementById('btn-complete-checkin').disabled = false;
+        }
+    }
+
+    // Baggage Selection Functions
+    function selectBaggage(baggageType) {
+        selectedBaggage = baggageType;
+        
+        // Remove selected class from all baggage options
+        document.querySelectorAll('.baggage-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked option
+        const baggageOption = event.currentTarget || event.target.closest('.baggage-option');
+        if (baggageOption) {
+            baggageOption.classList.add('selected');
+            
+            // Also check the radio button
+            const radioButton = baggageOption.querySelector('input[type="radio"]');
+            if (radioButton) {
+                radioButton.checked = true;
+            }
+        }
+    }
+
+    // Alert Helper Function
+    function showAlert(message, type = 'info') {
+        // Remove existing alerts
+        const existingAlerts = document.querySelectorAll('.custom-alert');
+        existingAlerts.forEach(alert => alert.remove());
+        
+        // Create alert element
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `custom-alert alert-${type}`;
+        alertDiv.innerHTML = `
+            <div class="alert-content">
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+                <button class="alert-close">&times;</button>
+            </div>
+        `;
+        
+        // Add to page
+        document.querySelector('.checkin-container').prepend(alertDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentElement) {
+                alertDiv.remove();
+            }
+        }, 5000);
+        
+        // Close button handler
+        alertDiv.querySelector('.alert-close').addEventListener('click', () => {
             alertDiv.remove();
+        });
+    }
+
+    // Download Boarding Pass Function
+    function downloadBoardingPass() {
+        alert('Downloading boarding pass...');
+        // In a real implementation, this would generate and download a PDF
+        // For now, we'll just show a message
+        showAlert('Boarding pass download would be implemented here with PDF generation.', 'info');
+        
+        // Alternative: Create a simple text file download
+        const passenger = document.getElementById('bp-passenger').textContent;
+        const flight = document.getElementById('bp-flight').textContent;
+        const seat = document.getElementById('bp-seat').textContent;
+        const gate = document.getElementById('bp-gate').textContent;
+        const date = document.getElementById('bp-date').textContent;
+        const time = document.getElementById('bp-time').textContent;
+        
+        const content = `BOARDING PASS\n\nPassenger: ${passenger}\nFlight: ${flight}\nDate: ${date}\nTime: ${time}\nGate: ${gate}\nSeat: ${seat}\n\nThank you for flying with HKAP Airlines!`;
+        
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `BoardingPass_${flight}_${passenger}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+
+    // Initialize Event Listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default baggage selection
+        const defaultBaggage = document.querySelector('.baggage-option input[value="none"]');
+        if (defaultBaggage) {
+            defaultBaggage.closest('.baggage-option').classList.add('selected');
         }
-    }, 5000);
-    
-    // Close button handler
-    alertDiv.querySelector('.alert-close').addEventListener('click', () => {
-        alertDiv.remove();
-    });
-}
-
-// Populate flight information
-function populateFlightInfo(booking) {
-    console.log('Populating flight info with:', booking);
-    
-    // Set origin and destination
-    document.getElementById('origin-code').textContent = booking.origin || 'HKG';
-    document.getElementById('destination-code').textContent = booking.destination || 'TPE';
-    document.getElementById('flight-number').textContent = booking.flight_code || booking.flight_number;
-    
-    // Format and set date
-    const flightDate = booking.flight_date ? new Date(booking.flight_date) : new Date();
-    document.getElementById('flight-date').textContent = flightDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-    });
-    
-    // Set departure time
-    document.getElementById('departure-time').textContent = booking.departure_time || '09:00';
-    
-    // Set passenger name
-    document.getElementById('passenger-name').textContent = booking.passenger_name || 'Passenger';
-    
-    // Also update boarding pass section
-    document.getElementById('bp-origin').textContent = booking.origin || 'HKG';
-    document.getElementById('bp-destination').textContent = booking.destination || 'TPE';
-    document.getElementById('bp-flight').textContent = booking.flight_code || booking.flight_number;
-    
-    // Format date for boarding pass (e.g., "15 DEC")
-    const bpDate = flightDate.toLocaleDateString('en-US', {
-        day: 'numeric',
-        month: 'short'
-    }).toUpperCase();
-    document.getElementById('bp-date').textContent = bpDate;
-}
-
-// Pre-fill passenger information
-function prefillPassengerInfo(booking) {
-    const passengerName = booking.passenger_name || '';
-    const nameParts = passengerName.split(' ');
-    
-    // Set first name (first part)
-    if (nameParts.length > 0) {
-        document.getElementById('first-name').value = nameParts[0];
-    }
-    
-    // Set full name confirm
-    document.getElementById('full-name-confirm').value = passengerName;
-    
-    // If you have a separate last name field
-    const lastNameField = document.getElementById('last-name-confirm');
-    if (lastNameField && nameParts.length > 1) {
-        lastNameField.value = nameParts.slice(1).join(' ');
-    }
-}
-
-// Also update the completeCheckin function
-async function completeCheckin() {
-    if (!selectedSeat) {
-        alert('Please select a seat');
-        return;
-    }
-    
-    const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
-    const fullName = document.getElementById('full-name').value.trim();
-    const passport = document.getElementById('passport') ? document.getElementById('passport').value : '';
-    
-    if (!bookingRef || !fullName) {
-        alert('Please verify your booking first');
-        return;
-    }
-    
-    // Determine seat type and fee
-    const seatElement = document.querySelector(`.seat[data-seat="${selectedSeat}"]`);
-    const isPremiumSeat = seatElement ? seatElement.classList.contains('premium') : false;
-    const seatFee = isPremiumSeat ? 50 : 0;
-    const cabinClass = isPremiumSeat ? 'Premium' : 'Economy';
-    
-    // Determine baggage
-    let baggageWeight = 0;
-    let baggageFee = 0;
-    let baggageType = 'carry-on';
-    
-    switch(selectedBaggage) {
-        case '20kg':
-            baggageWeight = 20;
-            baggageFee = 30;
-            baggageType = 'checked';
-            break;
-        case '32kg':
-            baggageWeight = 32;
-            baggageFee = 50;
-            baggageType = 'checked';
-            break;
-        default:
-            baggageWeight = 7;
-            baggageFee = 0;
-            baggageType = 'carry-on';
-    }
-    
-    // Get flight info from booking data
-    const flightNumber = document.getElementById('flight-number').textContent;
-    const passengerName = document.getElementById('passenger-name').textContent;
-    
-    // Show loading state
-    const button = document.getElementById('btn-complete-checkin');
-    const originalText = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    
-    try {
-        const response = await fetch('/api/complete-checkin', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                passenger: {
-                    name: passengerName,
-                    bookingRef: bookingRef,
-                    passport: passport
-                },
-                seat: {
-                    seat: selectedSeat,  // String seat number
-                    cabin: cabinClass    // String cabin class
-                },
-                baggage: {
-                    type: baggageType,
-                    weight: baggageWeight
-                }
-            })
+        
+        // Add click handlers to seats
+        document.querySelectorAll('.seat:not(.occupied):not(.aisle)').forEach(seat => {
+            seat.addEventListener('click', function() {
+                selectSeat(this.dataset.seat);
+            });
         });
         
-        const data = await response.json();
+        // Add click handlers to baggage options
+        document.querySelectorAll('.baggage-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.querySelector('input[type="radio"]').value;
+                selectBaggage(value);
+            });
+        });
         
-        // Reset button
-        button.disabled = false;
-        button.innerHTML = originalText;
-        
-        if (data.success && data.boardingPass) {
-            console.log('Boarding pass data received:', data.boardingPass);
-            populateBoardingPass(data.boardingPass);
-            nextStep(4);
-        } else {
-            alert(data.message || 'Check-in failed. Please try again.');
-        }
-    } catch (error) {
-        console.error('Error completing check-in:', error);
-        button.disabled = false;
-        button.innerHTML = originalText;
-        alert('An error occurred during check-in. Please try again.');
-    }
-}
+        // Add CSS for selected baggage option
+        const style = document.createElement('style');
+        style.textContent = `
+            .custom-alert {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+                min-width: 300px;
+                border-radius: 8px;
+                padding: 15px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+            .alert-info {
+                background: #eff6ff;
+                border: 2px solid #bfdbfe;
+                color: #1e40af;
+            }
+            .alert-success {
+                background: #f0fdf4;
+                border: 2px solid #86efac;
+                color: #166534;
+            }
+            .alert-error {
+                background: #fef2f2;
+                border: 2px solid #fecaca;
+                color: #991b1b;
+            }
+            .alert-content {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .alert-close {
+                margin-left: auto;
+                background: none;
+                border: none;
+                font-size: 20px;
+                cursor: pointer;
+                color: inherit;
+            }
+            .baggage-option.selected {
+                border-color: #3b82f6;
+                background-color: #eff6ff;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+            }
+            .baggage-option.selected .baggage-price {
+                color: #3b82f6;
+                font-weight: bold;
+            }
+        `;
+        document.head.appendChild(style);
+    });
 
-// Export functions for global access
-window.selectSeat = selectSeat;
-window.selectBaggage = selectBaggage;
-window.completeCheckin = completeCheckin;
-    </script>
+    // Make functions globally accessible
+    window.selectSeat = selectSeat;
+    window.selectBaggage = selectBaggage;
+    window.completeCheckin = completeCheckin;
+    window.verifyBooking = verifyBooking;
+    window.nextStep = nextStep;
+    window.previousStep = previousStep;
+    window.downloadBoardingPass = downloadBoardingPass;
+</script>
 </body>
 </html>

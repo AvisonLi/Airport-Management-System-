@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/airport-system.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .boarding-pass-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .back-button {
+            margin-bottom: 20px;
+        }
+        .boarding-pass {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .boarding-pass-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .airline-logo {
+            font-size: 2.5rem;
+            color: #3b82f6;
+        }
+        .boarding-pass-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .bp-route {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .bp-airport {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .bp-arrow {
+            font-size: 1.5rem;
+            color: #6b7280;
+        }
+        .boarding-pass-body {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .bp-field {
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .bp-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+        .bp-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .barcode {
+            text-align: center;
+            font-family: monospace;
+            font-size: 1.5rem;
+            letter-spacing: 3px;
+            padding: 20px;
+            background: white;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        @media print {
+            .back-button, .action-buttons {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="boarding-pass-container">
+        <!-- Back Button -->
+        <div class="back-button">
+            <a href="/passenger" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Back to Passenger Portal
+            </a>
+        </div>
+
+        <!-- Success Message -->
+        <div class="alert-checkin success mb-4">
+            <i class="fas fa-check-circle"></i>
+            <div>
+                <strong>Boarding Pass</strong><br>
+                Present this at the gate for boarding
+            </div>
+        </div>
+
+        <% if (boardingPasses && boardingPasses.length > 0) { 
+            const bp = boardingPasses[0]; %>
+        <!-- Boarding Pass -->
+        <div class="boarding-pass">
+            <div class="boarding-pass-header">
+                <div class="airline-logo"><i class="fas fa-plane"></i></div>
+                <div class="boarding-pass-title">HKAP AIRLINES - BOARDING PASS</div>
+            </div>
+
+            <div class="bp-route">
+                <div class="bp-airport"><%= bp.flight_details ? bp.flight_details.origin_airport : 'TPE' %></div>
+                <div class="bp-arrow"><i class="fas fa-arrow-right"></i></div>
+                <div class="bp-airport"><%= bp.flight_details ? bp.flight_details.destination_airport : 'NRT' %></div>
+            </div>
+
+            <div class="boarding-pass-body">
+                <div class="bp-field">
+                    <div class="bp-label">Passenger</div>
+                    <div class="bp-value"><%= bp.passenger_name.toUpperCase() %></div>
+                </div>
+                <div class="bp-field">
+                    <div class="bp-label">Flight</div>
+                    <div class="bp-value"><%= bp.flight_code %></div>
+                </div>
+                <div class="bp-field">
+                    <div class="bp-label">Date</div>
+                    <div class="bp-value"><%= bp.flight_date_formatted %></div>
+                </div>
+                <div class="bp-field">
+                    <div class="bp-label">Departure</div>
+                    <div class="bp-value"><%= bp.departure_time_formatted %></div>
+                </div>
+                <div class="bp-field">
+                    <div class="bp-label">Gate</div>
+                    <div class="bp-value"><%= bp.gate || 'TBA' %></div>
+                </div>
+                <div class="bp-field">
+                    <div class="bp-label">Seat</div>
+                    <div class="bp-value"><%= bp.seat_number %></div>
+                </div>
+                <div class="bp-field">
+                    <div class="bp-label">Boarding</div>
+                    <div class="bp-value"><%= bp.boarding_time_formatted %></div>
+                </div>
+                <div class="bp-field">
+                    <div class="bp-label">Class</div>
+                    <div class="bp-value"><%= bp.cabin_class %></div>
+                </div>
+                <% if (bp.baggage_tag_number) { %>
+                <div class="bp-field">
+                    <div class="bp-label">Baggage Tag</div>
+                    <div class="bp-value"><%= bp.baggage_tag_number %></div>
+                </div>
+                <% } %>
+            </div>
+
+            <div class="barcode">
+                <%= bp.barcode_display %>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button type="button" class="btn-print" onclick="window.print()">
+                <i class="fas fa-print"></i> Print Boarding Pass
+            </button>
+            <button type="button" class="btn-download" onclick="downloadBoardingPass()">
+                <i class="fas fa-download"></i> Download PDF
+            </button>
+            <a href="/checkin" class="btn-next">
+                <i class="fas fa-plane-departure"></i> Check-in Another Flight
+            </a>
+        </div>
+        <% } else { %>
+        <div class="alert-checkin error">
+            <i class="fas fa-exclamation-circle"></i>
+            <div>
+                <strong>No boarding pass found</strong><br>
+                Please complete check-in first.
+            </div>
+        </div>
+        <% } %>
+    </div>
+
+    <script>
+        function downloadBoardingPass() {
+            const passenger = document.querySelector('.bp-value').textContent;
+            const flight = document.querySelectorAll('.bp-value')[1].textContent;
+            const seat = document.querySelectorAll('.bp-value')[5].textContent;
+            
+            const content = `HKAP AIRLINES BOARDING PASS\n\nPassenger: ${passenger}\nFlight: ${flight}\nSeat: ${seat}\n\nThank you for flying with HKAP Airlines!`;
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `BoardingPass_${flight}_${passenger}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
