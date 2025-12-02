@@ -1332,3 +1332,600 @@ connectDB()
   app.get('/js/aircraft-fixed.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'js', 'aircraft-fixed.js'));
 });
+
+// ============================================
+// PASSENGER PORTAL TAB ROUTES
+// ============================================
+
+app.get('/passenger/dashboard', requirePassengerAuth, async (req, res) => {
+  try {
+    const bookingsCollection = getCollection(collections.bookings);
+    const flightsCollection = getCollection(collections.flights);
+    const boardingPassCollection = getCollection(collections.boardingPasses);
+    const baggageCollection = getCollection(collections.baggage);
+
+    const bookings = await bookingsCollection.find({ 
+      passenger_id: req.session.user.id 
+    }).sort({ booking_date: -1 }).toArray();
+
+    const cleanedBookings = bookings.map(booking => {
+      if (!booking.booking_status) {
+        booking.booking_status = 'confirmed';
+      }
+      
+      booking.seat_number = booking.seat_number || 'Not assigned';
+      booking.cabin_class = booking.cabin_class || 'Economy';
+      booking.booking_reference = booking.booking_reference || `REF-${Math.random().toString(36).substr(2, 9)}`;
+      booking.flight_date = booking.flight_date || new Date();
+      booking.baggage_type = booking.baggage_type || 'none';
+      booking.baggage_weight = booking.baggage_weight || 0;
+      
+      return booking;
+    });
+
+    const now = new Date();
+
+    const bookingsWithDetails = await Promise.all(cleanedBookings.map(async (booking) => {
+      const flight = await flightsCollection.findOne({ flight_code: booking.flight_code });
+      const boardingPass = await boardingPassCollection.findOne({ 
+        booking_reference: booking.booking_reference 
+      });
+      const baggage = await baggageCollection.findOne({
+        booking_reference: booking.booking_reference
+      });
+
+      const flightDate = booking.flight_date ? new Date(booking.flight_date) : null;
+      const bookingDate = booking.booking_date ? new Date(booking.booking_date) : null;
+
+      return {
+        ...booking,
+        flight_details: flight || {
+          flight_code: booking.flight_code || 'N/A',
+          route_display: 'Unknown Route',
+          scheduled_departure: 'N/A',
+          gate: 'TBA'
+        },
+        boarding_pass: boardingPass || null,
+        baggage_details: baggage || null,
+        flight_date_formatted: flightDate ? flightDate.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }) : 'Not set',
+        booking_date_formatted: bookingDate ? bookingDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        }) : 'Not set',
+        is_upcoming: flightDate && flightDate > now
+      };
+    }));
+
+    const upcomingBookings = bookingsWithDetails.filter(b => b.is_upcoming);
+    const pastBookings = bookingsWithDetails.filter(b => !b.is_upcoming).slice(0, 5);
+
+    const stats = {
+      total_bookings: bookings.length,
+      upcoming_flights: upcomingBookings.length,
+      checked_in: bookings.filter(b => b.booking_status === 'checked_in' || b.booking_status === 'boarded').length,
+      miles_earned: bookings.reduce((total, b) => total + (b.total_amount || 0) * 5, 0)
+    };
+
+    res.render('passenger', {
+      title: 'Passenger Portal - HKAP Airlines',
+      user: req.session.user,
+      bookings: bookingsWithDetails,
+      upcomingBookings,
+      pastBookings,
+      stats,
+      activeTab: 'dashboard'
+    });
+  } catch (error) {
+    console.error('Error loading passenger dashboard:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+// My Bookings route
+app.get('/passenger/bookings', requirePassengerAuth, async (req, res) => {
+  try {
+    const bookingsCollection = getCollection(collections.bookings);
+    const flightsCollection = getCollection(collections.flights);
+    const boardingPassCollection = getCollection(collections.boardingPasses);
+
+    // Get all bookings for passenger
+    const bookings = await bookingsCollection.find({ 
+      passenger_id: req.session.user.id 
+    }).sort({ booking_date: -1 }).toArray();
+
+    // Get flight details for each booking
+    const bookingsWithDetails = await Promise.all(bookings.map(async (booking) => {
+      const flight = await flightsCollection.findOne({ flight_code: booking.flight_code });
+      const boardingPass = await boardingPassCollection.findOne({ 
+        booking_reference: booking.booking_reference 
+      });
+
+      // Format dates
+      const flightDate = booking.flight_date ? new Date(booking.flight_date) : null;
+      const bookingDate = booking.booking_date ? new Date(booking.booking_date) : null;
+
+      return {
+        ...booking,
+        flight_details: flight,
+        boarding_pass: boardingPass,
+        flight_date_formatted: flightDate ? flightDate.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }) : 'Not set',
+        booking_date_formatted: bookingDate ? bookingDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        }) : 'Not set'
+      };
+    }));
+
+    res.render('passenger', {
+      title: 'My Bookings - HKAP Airlines',
+      user: req.session.user,
+      bookings: bookingsWithDetails,
+      activeTab: 'bookings'
+    });
+  } catch (error) {
+    console.error('Error loading bookings:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+// Boarding Passes route
+app.get('/passenger/boarding-passes', requirePassengerAuth, async (req, res) => {
+  try {
+    const boardingPassCollection = getCollection(collections.boardingPasses);
+    const flightsCollection = getCollection(collections.flights);
+    const bookingsCollection = getCollection(collections.bookings);
+
+    // Get all boarding passes for passenger
+    const boardingPasses = await boardingPassCollection.find({ 
+      passenger_id: req.session.user.id 
+    }).sort({ flight_date: -1 }).toArray();
+
+    // Get flight and booking details for each boarding pass
+    const passesWithDetails = await Promise.all(boardingPasses.map(async (pass) => {
+      const flight = await flightsCollection.findOne({ flight_code: pass.flight_code });
+      const booking = await bookingsCollection.findOne({ 
+        booking_reference: pass.booking_reference 
+      });
+
+      // Format dates and times
+      const flightDate = pass.flight_date ? new Date(pass.flight_date) : null;
+      const boardingTime = pass.boarding_time || calculateBoardingTime(pass.departure_time);
+
+      return {
+        ...pass,
+        flight_details: flight,
+        booking_details: booking,
+        flight_date_formatted: flightDate ? flightDate.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }) : 'Not set',
+        departure_time_formatted: pass.departure_time || 'TBA',
+        boarding_time_formatted: boardingTime,
+        generated_at_formatted: pass.generated_at ? 
+          new Date(pass.generated_at).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }) : 'Not set'
+      };
+    }));
+
+    res.render('passenger', {
+      title: 'Boarding Passes - HKAP Airlines',
+      user: req.session.user,
+      boardingPasses: passesWithDetails,
+      activeTab: 'boarding-passes'
+    });
+  } catch (error) {
+    console.error('Error loading boarding passes:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+// Baggage Tracking route
+app.get('/passenger/baggage', requirePassengerAuth, async (req, res) => {
+  try {
+    const baggageCollection = getCollection(collections.baggage);
+    const bookingsCollection = getCollection(collections.bookings);
+    const flightsCollection = getCollection(collections.flights);
+
+    // Get all baggage items for passenger
+    const baggageItems = await baggageCollection.find({ 
+      passenger_id: req.session.user.id 
+    }).sort({ checked_in_at: -1 }).toArray();
+
+    // Get booking and flight details for each baggage item
+    const baggageWithDetails = await Promise.all(baggageItems.map(async (item) => {
+      const booking = await bookingsCollection.findOne({ 
+        booking_reference: item.booking_reference 
+      });
+      const flight = await flightsCollection.findOne({ 
+        flight_code: booking?.flight_code 
+      });
+
+      // Format dates and add status info
+      const checkedInAt = item.checked_in_at ? new Date(item.checked_in_at) : null;
+      
+      let statusText, statusColor;
+      switch(item.status) {
+        case 'checked_in':
+          statusText = 'Checked In';
+          statusColor = '#3b82f6';
+          break;
+        case 'loaded':
+          statusText = 'Loaded to Aircraft';
+          statusColor = '#10b981';
+          break;
+        case 'arrived':
+          statusText = 'Arrived at Destination';
+          statusColor = '#059669';
+          break;
+        default:
+          statusText = item.status || 'Unknown';
+          statusColor = '#6b7280';
+      }
+
+      return {
+        ...item,
+        booking_details: booking,
+        flight_details: flight,
+        checked_in_at_formatted: checkedInAt ? 
+          checkedInAt.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }) : 'Not set',
+        flight_date_formatted: booking?.flight_date ? 
+          new Date(booking.flight_date).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+          }) : 'Not set',
+        status_text: statusText,
+        status_color: statusColor
+      };
+    }));
+
+    res.render('passenger', {
+      title: 'Baggage Tracking - HKAP Airlines',
+      user: req.session.user,
+      baggageItems: baggageWithDetails,
+      activeTab: 'baggage'
+    });
+  } catch (error) {
+    console.error('Error loading baggage tracking:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+// Profile Settings route
+app.get('/passenger/profile', requirePassengerAuth, async (req, res) => {
+  try {
+    const usersCollection = getCollection(collections.users);
+    
+    // Get user details with preferences
+    const userDetails = await usersCollection.findOne({ 
+      user_id: req.session.user.id 
+    });
+
+    // Get user's bookings for stats
+    const bookingsCollection = getCollection(collections.bookings);
+    const bookings = await bookingsCollection.find({ 
+      passenger_id: req.session.user.id 
+    }).toArray();
+
+    const stats = {
+      total_bookings: bookings.length,
+      flights_taken: bookings.filter(b => {
+        const flightDate = b.flight_date ? new Date(b.flight_date) : null;
+        return flightDate && flightDate < new Date();
+      }).length,
+      upcoming_flights: bookings.filter(b => {
+        const flightDate = b.flight_date ? new Date(b.flight_date) : null;
+        return flightDate && flightDate >= new Date();
+      }).length,
+      miles_earned: bookings.reduce((total, b) => total + (b.total_amount || 0) * 5, 0)
+    };
+
+    res.render('passenger', {
+      title: 'Profile Settings - HKAP Airlines',
+      user: req.session.user,
+      userDetails: userDetails,
+      stats: stats,
+      activeTab: 'profile'
+    });
+  } catch (error) {
+    console.error('Error loading profile:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+// Update Profile API
+app.post('/api/passenger/update-profile', requirePassengerAuth, async (req, res) => {
+  try {
+    const usersCollection = getCollection(collections.users);
+    const userId = req.session.user.id;
+    const updateData = req.body;
+
+    // Prepare update fields
+    const updates = {
+      full_name: updateData.full_name,
+      email: updateData.email,
+      phone_number: updateData.phone_number,
+      passport_number: updateData.passport_number,
+      date_of_birth: updateData.date_of_birth ? new Date(updateData.date_of_birth) : null,
+      nationality: updateData.nationality,
+      updated_at: new Date()
+    };
+
+    // Handle preferences
+    if (updateData.seat_preference || updateData.meal_preference) {
+      updates['preferences.seat_preference'] = updateData.seat_preference || 'any';
+      updates['preferences.meal_preference'] = updateData.meal_preference || 'regular';
+    }
+
+    // Handle special assistance
+    const specialAssistance = [];
+    if (updateData.wheelchair === 'on') specialAssistance.push('wheelchair');
+    if (updateData.extra_legroom === 'on') specialAssistance.push('extra_legroom');
+    if (updateData.priority_boarding === 'on') specialAssistance.push('priority_boarding');
+    
+    if (specialAssistance.length > 0) {
+      updates['preferences.special_assistance'] = specialAssistance;
+    }
+
+    // Update user in database
+    const result = await usersCollection.updateOne(
+      { user_id: userId },
+      { $set: updates }
+    );
+
+    // Update session data
+    if (result.modifiedCount > 0) {
+      req.session.user.full_name = updateData.full_name;
+      req.session.user.email = updateData.email;
+      req.session.user.passport_number = updateData.passport_number;
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: req.session.user
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.json({
+      success: false,
+      message: 'Error updating profile: ' + error.message
+    });
+  }
+});
+
+// Change Password API
+app.post('/api/passenger/change-password', requirePassengerAuth, async (req, res) => {
+  try {
+    const { current_password, new_password, confirm_password } = req.body;
+    
+    if (!current_password || !new_password || !confirm_password) {
+      return res.json({
+        success: false,
+        message: 'All password fields are required'
+      });
+    }
+
+    if (new_password !== confirm_password) {
+      return res.json({
+        success: false,
+        message: 'New passwords do not match'
+      });
+    }
+
+    if (new_password.length < 8) {
+      return res.json({
+        success: false,
+        message: 'New password must be at least 8 characters long'
+      });
+    }
+
+    const usersCollection = getCollection(collections.users);
+    const user = await usersCollection.findOne({ user_id: req.session.user.id });
+
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(current_password, user.password_hash);
+    
+    if (!isValidPassword) {
+      return res.json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Hash new password
+    const newPasswordHash = await bcrypt.hash(new_password, 10);
+
+    // Update password
+    await usersCollection.updateOne(
+      { user_id: req.session.user.id },
+      { $set: { password_hash: newPasswordHash, updated_at: new Date() } }
+    );
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.json({
+      success: false,
+      message: 'Error changing password: ' + error.message
+    });
+  }
+});
+
+// Cancel Booking API
+app.post('/api/passenger/cancel-booking', requirePassengerAuth, async (req, res) => {
+  try {
+    const { booking_id } = req.body;
+    
+    const bookingsCollection = getCollection(collections.bookings);
+    const flightsCollection = getCollection(collections.flights);
+    const boardingPassCollection = getCollection(collections.boardingPasses);
+
+    // Get booking to verify ownership
+    const booking = await bookingsCollection.findOne({
+      booking_id: booking_id,
+      passenger_id: req.session.user.id
+    });
+
+    if (!booking) {
+      return res.json({
+        success: false,
+        message: 'Booking not found or access denied'
+      });
+    }
+
+    // Check if booking can be cancelled
+    const flightDate = new Date(booking.flight_date);
+    const now = new Date();
+    const hoursUntilFlight = (flightDate - now) / (1000 * 60 * 60);
+
+    if (hoursUntilFlight < 24) {
+      return res.json({
+        success: false,
+        message: 'Bookings can only be cancelled at least 24 hours before departure'
+      });
+    }
+
+    if (booking.booking_status === 'cancelled') {
+      return res.json({
+        success: false,
+        message: 'Booking is already cancelled'
+      });
+    }
+
+    // Update booking status
+    await bookingsCollection.updateOne(
+      { booking_id: booking_id },
+      { 
+        $set: { 
+          booking_status: 'cancelled',
+          updated_at: new Date() 
+        } 
+      }
+    );
+
+    // Update flight checked-in count
+    await flightsCollection.updateOne(
+      { flight_code: booking.flight_code },
+      { $inc: { total_checked_in: -1 } }
+    );
+
+    // Remove boarding pass if exists
+    await boardingPassCollection.deleteOne({
+      booking_reference: booking.booking_reference
+    });
+
+    res.json({
+      success: true,
+      message: 'Booking cancelled successfully'
+    });
+  } catch (error) {
+    console.error('Error cancelling booking:', error);
+    res.json({
+      success: false,
+      message: 'Error cancelling booking: ' + error.message
+    });
+  }
+});
+
+// Export Passenger Data API
+app.get('/api/passenger/export-data', requirePassengerAuth, async (req, res) => {
+  try {
+    const usersCollection = getCollection(collections.users);
+    const bookingsCollection = getCollection(collections.bookings);
+    const boardingPassCollection = getCollection(collections.boardingPasses);
+    const baggageCollection = getCollection(collections.baggage);
+
+    // Get all user data
+    const user = await usersCollection.findOne({ user_id: req.session.user.id });
+    const bookings = await bookingsCollection.find({ passenger_id: req.session.user.id }).toArray();
+    const boardingPasses = await boardingPassCollection.find({ passenger_id: req.session.user.id }).toArray();
+    const baggage = await baggageCollection.find({ passenger_id: req.session.user.id }).toArray();
+
+    // Prepare data for export (exclude sensitive information)
+    const exportData = {
+      profile: {
+        full_name: user.full_name,
+        email: user.email,
+        passport_number: user.passport_number,
+        nationality: user.nationality,
+        date_of_birth: user.date_of_birth,
+        frequent_flyer_number: user.frequent_flyer_number,
+        preferences: user.preferences
+      },
+      bookings: bookings.map(b => ({
+        booking_reference: b.booking_reference,
+        flight_code: b.flight_code,
+        flight_date: b.flight_date,
+        seat_number: b.seat_number,
+        cabin_class: b.cabin_class,
+        booking_status: b.booking_status,
+        booking_date: b.booking_date,
+        total_amount: b.total_amount
+      })),
+      boarding_passes: boardingPasses.map(bp => ({
+        flight_code: bp.flight_code,
+        flight_date: bp.flight_date,
+        seat_number: bp.seat_number,
+        cabin_class: bp.cabin_class,
+        gate: bp.gate,
+        boarding_time: bp.boarding_time,
+        status: bp.status
+      })),
+      baggage: baggage.map(bg => ({
+        baggage_tag: bg.baggage_tag,
+        flight_code: bg.flight_code,
+        baggage_type: bg.baggage_type,
+        weight: bg.weight,
+        status: bg.status,
+        checked_in_at: bg.checked_in_at
+      })),
+      exported_at: new Date(),
+      exported_by: req.session.user.email
+    };
+
+    res.json({
+      success: true,
+      data: exportData,
+      message: 'Data exported successfully'
+    });
+  } catch (error) {
+    console.error('Error exporting data:', error);
+    res.json({
+      success: false,
+      message: 'Error exporting data: ' + error.message
+    });
+  }
+});
+
+// ============================================
+// PASSENGER PORTAL - Redirect to dashboard
+// ============================================
+app.get('/passenger', requirePassengerAuth, (req, res) => {
+  res.redirect('/passenger/dashboard');
+});

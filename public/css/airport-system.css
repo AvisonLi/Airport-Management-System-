@@ -5293,3 +5293,93 @@ body.register-page {
     color: #f59e0b;
     font-weight: 600;
 }
+
+/* Passenger Portal Specific Styles */
+.passenger-portal .tab-content {
+    display: none;
+}
+
+.passenger-portal .tab-content.active {
+    display: block;
+}
+
+.flight-timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-step {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.timeline-step::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0;
+    bottom: -20px;
+    width: 2px;
+    background: #e5e7eb;
+}
+
+.timeline-step:last-child::before {
+    display: none;
+}
+
+.timeline-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    position: relative;
+    z-index: 1;
+}
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-time {
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .passenger-portal .nav-links {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .nav-links li {
+        flex-shrink: 0;
+    }
+    
+    .flight-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .flight-route {
+        margin-bottom: 15px;
+    }
+    
+    .action-buttons {
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        flex: 1;
+        min-width: 120px;
+        margin-bottom: 10px;
+    }
+}
