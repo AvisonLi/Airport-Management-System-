@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Aircraft & Crew - Airport Management System' %></title>
+    <link rel="stylesheet" href="/css/airport-system.css">
+</head>
+<style>.notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            z-index: 1000;
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .notification-success {
+            background-color: #10b981;
+            border-left: 4px solid #059669;
+        }
+        
+        .notification-error {
+            background-color: #ef4444;
+            border-left: 4px solid #dc2626;
+        }
+        
+        .notification-warning {
+            background-color: #f59e0b;
+            border-left: 4px solid #d97706;
+        }
+        
+        .notification-info {
+            background-color: #3b82f6;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .notification-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            margin-left: 15px;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .aircraft-item {
+            transition: all 0.3s ease;
+        }
+        
+        .status-available {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .status-assigned {
+            color: #3b82f6;
+            font-weight: bold;
+        }
+        
+        .status-maintenance {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+        
+        #maintenance-count {
+                color: #e74c3c;
+                }
+
+                #available-count {
+                color: #27ae60; 
+                }
+
+                #service-count {
+                color: #2980b9; 
+                }
+
+
+        </style>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>✈️ AMS</h2>
+            <span>AIRPORT MANAGEMENT SYSTEM</span>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item" data-section="passenger">
+                <a href="/dashboard">
+                    <i class="icon">👤</i>
+                    <span>Passenger Services</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="boarding">
+                <a href="/section/boarding">
+                    <i class="icon">🚪</i>
+                    <span>Boarding & Gates</span>
+                </a>
+            </li>
+            <li class="nav-item active" data-section="aircraft">
+                <a href="/section/aircraft">
+                    <i class="icon">🛩️</i>
+                    <span>Aircraft & Crew</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="ground">
+                <a href="/ground">
+                    <i class="icon">🚛</i>
+                    <span>Ground Services</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="crew">
+                <a href="/section/crew">
+                    <i class="icon">👷</i>
+                    <span>Crew Management</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="breadcrumb">
+                <span id="current-section">Aircraft & Crew Management</span>
+            </div>
+            <div class="user-info">
+                <div class="user-details">
+                    <span class="user-name"><%= user?.full_name || 'Admin User' %></span>
+                    <span class="user-role"><%= user?.role || 'admin' %></span>
+                </div>
+                <div class="avatar"><%= user?.avatar || '👨‍💼' %></div>
+                <a href="/logout" class="logout-btn">
+                    <span>🚪</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Aircraft and Crew Management Section -->
+        <section id="aircraft-section" class="content-section active">
+            <h1>Aircraft & Crew Management</h1>
+            
+            <!-- Aircraft Matching System -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>🛩️ Aircraft Matching System</h3>
+                    <div class="status-indicator active"></div>
+                </div>
+                <div class="card-content">
+                    <div class="aircraft-requirements">
+                        <h4>Aircraft Assignment</h4>
+                        <div class="requirement-grid">
+                            <div class="requirement-item">
+                                <span class="requirement-label">Select Flight:</span>
+                                <select id="aircraft-flight-select" class="form-select">
+                                    <option value="">-- Select Flight --</option>
+                                    <% if (flights && flights.length > 0) { %>
+                                        <% flights.forEach(flight => { %>
+                                            <option value="<%= flight.code %>"><%= flight.code %> - <%= flight.route %></option>
+                                        <% }) %>
+                                    <% } %>
+                                </select>
+                            </div>
+                            <div class="requirement-item">
+                                <span class="requirement-label">Aircraft Type Filter:</span>
+                                <select id="aircraft-type-filter" class="form-select">
+                                    <option value="">All Types</option>
+                                    <option value="Boeing">Boeing</option>
+                                    <option value="Airbus">Airbus</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="aircraft-list" id="aircraft-list">
+                            <h5>Available Aircraft</h5>
+                            <% if (aircraftList && aircraftList.length > 0) { %>
+                                <% aircraftList.forEach(aircraft => { %>
+                                    <div class="aircraft-item <%= aircraft.status %>" data-aircraft-id="<%= aircraft.id %>">
+                                        <span class="aircraft-id"><%= aircraft.id %></span>
+                                        <span class="aircraft-type"><%= aircraft.type %></span>
+                                        <span class="aircraft-status"><%= aircraft.statusIcon %> <%= aircraft.statusText %></span>
+                                        <% if (aircraft.status === 'available') { %>
+                                            <button class="btn btn-sm btn-primary assign-aircraft-btn" 
+                                                    data-aircraft-id="<%= aircraft.id %>"
+                                                    onclick="assignAircraft('<%= aircraft.id %>')">
+                                                Assign
+                                            </button>
+                                        <% } else if (aircraft.status === 'assigned') { %>
+                                            <button class="btn btn-sm btn-warning swap-aircraft-btn" 
+                                                    data-aircraft-id="<%= aircraft.id %>"
+                                                    onclick="openSwapModal('<%= aircraft.id %>')">
+                                                Swap Aircraft
+                                            </button>
+                                        <% } else { %>
+                                            <button class="btn btn-sm btn-secondary" disabled>
+                                                Unavailable
+                                            </button>
+                                        <% } %>
+                                    </div>
+                                <% }) %>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aircraft Swapping System -->
+            <div class="service-card" id="swap-card" style="display: none;">
+                <div class="card-header">
+                    <h3>🔄 Aircraft Swapping System</h3>
+                    <div class="status-indicator warning"></div>
+                </div>
+                <div class="card-content">
+                    <div class="swap-interface">
+                        <div class="swap-section">
+                            <h5>Current Assignment</h5>
+                            <div class="aircraft-card current">
+                                <div class="aircraft-info">
+                                    <span class="aircraft-id" id="current-aircraft-id">-</span>
+                                    <span class="aircraft-details" id="current-aircraft-details">-</span>
+                                </div>
+                                <span class="flight-info" id="current-flight-info">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="swap-arrow">↔️</div>
+                        
+                        <div class="swap-section">
+                            <h5>Replacement Aircraft</h5>
+                            <select id="replacement-aircraft-select" class="form-select">
+                                <option value="">-- Select Replacement --</option>
+                            </select>
+                            <div class="aircraft-card replacement" id="replacement-aircraft-card" style="display: none;">
+                                <div class="aircraft-info">
+                                    <span class="aircraft-id" id="replacement-aircraft-id">-</span>
+                                    <span class="aircraft-details" id="replacement-aircraft-details">-</span>
+                                </div>
+                                <span class="flight-info">Ready for Assignment</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="swap-actions">
+                        <button class="btn btn-warning" onclick="confirmSwap()" id="confirm-swap-btn" disabled>Confirm Swap</button>
+                        <button class="btn btn-secondary" onclick="cancelSwap()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maintenance Tracking System -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>🔧 Maintenance Tracking System</h3>
+                    <div class="status-indicator online"></div>
+                </div>
+                <div class="card-content">
+                    <div class="maintenance-dashboard">
+                        <div class="maintenance-stats">
+                            <div class="stat-card">
+                                <span class="stat-number" id="maintenance-count"><%= maintenanceStats?.inMaintenance || 0 %></span>
+                                <span class="stat-label">In Maintenance</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-number" id="available-count"><%= maintenanceStats?.available || 0 %></span>
+                                <span class="stat-label">Available</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-number" id="service-count"><%= maintenanceStats?.inService || 0 %></span>
+                                <span class="stat-label">In Service</span>
+                            </div>
+                        </div>
+                        
+                        <div class="maintenance-list" id="maintenance-list">
+                            <!-- Maintenance items will be loaded dynamically -->
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="refreshMaintenanceList()">🔄 Refresh Status</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crew Assignment System -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>👥 Crew Assignment System</h3>
+                    <div class="status-indicator active"></div>
+                </div>
+                <div class="card-content">
+                    <div class="crew-assignment">
+                        <div class="assignment-form">
+                            <h5>Assign Crew to Task</h5>
+                            <div class="form-grid">
+                                <div class="input-group">
+                                    <label for="crew-type-select">Crew Type:</label>
+                                    <select id="crew-type-select" class="form-select" onchange="filterCrewByType()">
+                                        <option value="">All Types</option>
+                                        <option value="cleaning">Cleaning Crew</option>
+                                        <option value="fueling">Fueling Crew</option>
+                                        <option value="catering">Catering Crew</option>
+                                        <option value="maintenance">Maintenance Crew</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="crew-member-select">Crew Member:</label>
+                                    <select id="crew-member-select" class="form-select">
+                                        <option value="">-- Select Crew Member --</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="task-aircraft-select">Aircraft:</label>
+                                    <select id="task-aircraft-select" class="form-select">
+                                        <option value="">-- Select Aircraft --</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="task-description">Task:</label>
+                                    <input type="text" id="task-description" placeholder="e.g., Pre-flight cleaning">
+                                </div>
+                            </div>
+                            <button class="btn btn-success" onclick="assignCrewToTask()">Assign Crew</button>
+                        </div>
+                        
+                        <div class="crew-status-grid" id="crew-status-grid">
+                            <!-- Crew status will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script src="/js/aircraft.js"></script>
+</body>
+</html>

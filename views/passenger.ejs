@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            position: fixed;
+            width: 260px;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+        }
+        .main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .flight-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .flight-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .status-confirmed {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .status-checked-in {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .status-boarded {
+            background-color: #e9d5ff;
+            color: #6b21a8;
+        }
+        .status-cancelled {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+        }
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+        .quick-action-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .quick-action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+        }
+        .icon-wrapper {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 28px;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: relative;
+                min-height: auto;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="p-6">
+            <div class="flex items-center mb-8">
+                <i class="fas fa-plane-departure text-3xl mr-3 text-white"></i>
+                <div>
+                    <h1 class="text-xl font-bold text-white">HKAP Airlines</h1>
+                    <p class="text-xs text-blue-200">Passenger Portal</p>
+                </div>
+            </div>
+            
+            <div class="bg-white bg-opacity-10 rounded-lg p-4 mb-6">
+                <div class="flex items-center">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-2xl mr-3">
+                        <%= user.avatar || '👤' %>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-white"><%= user.full_name %></h3>
+                        <p class="text-sm text-blue-200">Passenger</p>
+                        <% if (user.passport_number) { %>
+                        <p class="text-xs text-blue-300 mt-1">
+                            <i class="fas fa-passport mr-1"></i><%= user.passport_number %>
+                        </p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            
+            <nav>
+                <a href="#" onclick="showSection('dashboard')" class="nav-link active" data-section="dashboard">
+                    <i class="fas fa-home mr-3 w-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" onclick="showSection('bookings')" class="nav-link" data-section="bookings">
+                    <i class="fas fa-ticket-alt mr-3 w-5"></i>
+                    <span>My Bookings</span>
+                </a>
+                <a href="#" onclick="showSection('boarding-passes')" class="nav-link" data-section="boarding-passes">
+                    <i class="fas fa-passport mr-3 w-5"></i>
+                    <span>Boarding Passes</span>
+                </a>
+                <a href="#" onclick="showSection('baggage')" class="nav-link" data-section="baggage">
+                    <i class="fas fa-suitcase mr-3 w-5"></i>
+                    <span>Baggage Tracking</span>
+                </a>
+                <a href="#" onclick="showSection('profile')" class="nav-link" data-section="profile">
+                    <i class="fas fa-user-cog mr-3 w-5"></i>
+                    <span>Profile Settings</span>
+                </a>
+                
+                <hr class="my-4 border-blue-400 border-opacity-30">
+                
+                <a href="/checkin" class="nav-link">
+                    <i class="fas fa-check-circle mr-3 w-5"></i>
+                    <span>Web Check-in</span>
+                </a>
+                <a href="/logout" class="nav-link text-red-300 hover:bg-red-600 hover:bg-opacity-30">
+                    <i class="fas fa-sign-out-alt mr-3 w-5"></i>
+                    <span>Logout</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800" id="current-section-title">Passenger Dashboard</h2>
+                        <p class="text-gray-600 text-sm">Welcome back, <%= user.full_name %></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-gray-700" id="current-date-time"></p>
+                        <p class="text-sm text-gray-500">
+                            <i class="fas fa-map-marker-alt mr-1"></i>HKG International Airport
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="content-section active">
+                <!-- Statistics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="stat-card">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium mb-1">Total Bookings</p>
+                                <h3 class="text-3xl font-bold text-gray-800"><%= bookings.length %></h3>
+                            </div>
+                            <div class="icon-wrapper bg-blue-100">
+                                <i class="fas fa-plane text-blue-600"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center text-sm">
+                            <span class="text-green-600 font-semibold">
+                                <i class="fas fa-arrow-up mr-1"></i>Active
+                            </span>
+                            <span class="text-gray-500 ml-2">All time</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium mb-1">Checked In</p>
+                                <h3 class="text-3xl font-bold text-gray-800">
+                                    <%= bookings.filter(b => b.booking_status === 'checked_in' || b.booking_status === 'boarded').length %>
+                                </h3>
+                            </div>
+                            <div class="icon-wrapper bg-green-100">
+                                <i class="fas fa-check-circle text-green-600"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center text-sm">
+                            <span class="text-blue-600 font-semibold">
+                                <i class="fas fa-calendar mr-1"></i>This month
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium mb-1">Baggage Checked</p>
+                                <h3 class="text-3xl font-bold text-gray-800">
+                                    <%= bookings.filter(b => b.baggage_type === 'checked').length %>
+                                </h3>
+                            </div>
+                            <div class="icon-wrapper bg-purple-100">
+                                <i class="fas fa-suitcase text-purple-600"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center text-sm">
+                            <span class="text-purple-600 font-semibold">
+                                <i class="fas fa-box mr-1"></i>Total items
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upcoming Flights -->
+                <div class="bg-white rounded-xl shadow-sm mb-8">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-bold text-gray-800">
+                                <i class="fas fa-plane-departure mr-2 text-blue-600"></i>
+                                Upcoming Flights
+                            </h3>
+                            <a href="#" onclick="showSection('bookings')" class="text-blue-600 hover:underline text-sm font-medium">
+                                View All <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <% if (bookings.length === 0) { %>
+                            <div class="text-center py-12">
+                                <i class="fas fa-plane text-5xl text-gray-300 mb-4"></i>
+                                <h4 class="text-xl font-semibold text-gray-700 mb-2">No Upcoming Flights</h4>
+                                <p class="text-gray-500 mb-6">You don't have any bookings at the moment</p>
+                                <a href="/checkin" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition shadow-lg">
+                                    <i class="fas fa-plus mr-2"></i>Book a Flight
+                                </a>
+                            </div>
+                        <% } else { %>
+                            <div class="space-y-4">
+                                <% bookings.forEach(booking => { %>
+                                <div class="flight-card p-5">
+                                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <h4 class="font-bold text-xl text-gray-800">
+                                                    <%= booking.flight_details ? booking.flight_details.flight_code : 'N/A' %>
+                                                </h4>
+                                                <span class="status-badge status-<%= booking.booking_status.replace('_', '-') %>">
+                                                    <i class="fas fa-circle mr-1" style="font-size: 8px;"></i>
+                                                    <%= booking.booking_status.charAt(0).toUpperCase() + booking.booking_status.slice(1).replace('_', ' ') %>
+                                                </span>
+                                            </div>
+                                            <p class="text-gray-600 mb-2">
+                                                <i class="fas fa-route mr-2 text-blue-500"></i>
+                                                <%= booking.flight_details ? booking.flight_details.route_display : 'Unknown Route' %>
+                                            </p>
+                                            <div class="flex flex-wrap gap-4 text-sm text-gray-500">
+                                                <span>
+                                                    <i class="far fa-calendar mr-1"></i>
+                                                    <%= new Date(booking.flight_date || new Date()).toLocaleDateString('en-US', {weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'}) %>
+                                                </span>
+                                                <span>
+                                                    <i class="far fa-clock mr-1"></i>
+                                                    <%= booking.flight_details ? booking.flight_details.scheduled_departure : 'N/A' %>
+                                                </span>
+                                                <span>
+                                                    <i class="fas fa-chair mr-1"></i>
+                                                    <%= booking.seat_number || 'Not assigned' %>
+                                                </span>
+                                                <span>
+                                                    <i class="fas fa-door-closed mr-1"></i>
+                                                    Gate <%= booking.flight_details ? booking.flight_details.gate : 'TBA' %>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex gap-2">
+                                            <% if (booking.boarding_pass) { %>
+                                            <a href="/passenger/boarding-pass/<%= booking.booking_reference %>" 
+                                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition shadow">
+                                                <i class="fas fa-ticket-alt mr-2"></i>View Pass
+                                            </a>
+                                            <% } else if (booking.booking_status === 'confirmed') { %>
+                                            <a href="/checkin" 
+                                               class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow">
+                                                <i class="fas fa-check-in mr-2"></i>Check In
+                                            </a>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    
+                                    <% if (booking.baggage_details) { %>
+                                    <div class="mt-4 pt-4 border-t border-gray-200">
+                                        <div class="flex items-center text-sm">
+                                            <i class="fas fa-suitcase mr-2 text-purple-600"></i>
+                                            <span class="text-gray-700 font-medium">Baggage:</span>
+                                            <span class="ml-2 text-gray-600">
+                                                <%= booking.baggage_details.baggage_tag %> 
+                                                (<%= booking.baggage_details.weight %>kg)
+                                            </span>
+                                            <span class="ml-4 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
+                                                <%= booking.baggage_details.status.replace('_', ' ').toUpperCase() %>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <% } %>
+                                </div>
+                                <% }); %>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <h3 class="text-xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-bolt mr-2 text-yellow-500"></i>
+                    Quick Actions
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="quick-action-card" onclick="window.location.href='/checkin'">
+                        <div class="icon-wrapper bg-blue-100">
+                            <i class="fas fa-check-circle text-blue-600"></i>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2 text-gray-800">Web Check-in</h4>
+                        <p class="text-gray-600 text-sm mb-4">Check in online and save time at the airport</p>
+                        <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                            Check In Now
+                        </button>
+                    </div>
+                    
+                    <div class="quick-action-card" onclick="showSection('baggage')">
+                        <div class="icon-wrapper bg-purple-100">
+                            <i class="fas fa-search-location text-purple-600"></i>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2 text-gray-800">Track Baggage</h4>
+                        <p class="text-gray-600 text-sm mb-4">Monitor your baggage location in real-time</p>
+                        <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium">
+                            Track Now
+                        </button>
+                    </div>
+                    
+                    <div class="quick-action-card">
+                        <div class="icon-wrapper bg-green-100">
+                            <i class="fas fa-headset text-green-600"></i>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2 text-gray-800">Customer Support</h4>
+                        <p class="text-gray-600 text-sm mb-4">Need help? Our team is here 24/7</p>
+                        <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium">
+                            Get Help
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- My Bookings Section -->
+            <div id="bookings-section" class="content-section">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-ticket-alt mr-2 text-blue-600"></i>
+                        My Bookings
+                    </h3>
+                    
+                    <% if (bookings.length === 0) { %>
+                        <div class="text-center py-12">
+                            <i class="fas fa-ticket-alt text-5xl text-gray-300 mb-4"></i>
+                            <h4 class="text-xl font-semibold text-gray-700 mb-2">No Bookings Found</h4>
+                            <p class="text-gray-500 mb-6">You haven't made any flight bookings yet</p>
+                            <a href="/checkin" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition shadow-lg">
+                                <i class="fas fa-plus mr-2"></i>Book New Flight
+                            </a>
+                        </div>
+                    <% } else { %>
+                        <div class="space-y-4">
+                            <% bookings.forEach(booking => { %>
+                            <div class="flight-card p-5">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h4 class="font-bold text-xl text-gray-800 mb-1">
+                                            <%= booking.flight_details ? booking.flight_details.flight_code : 'N/A' %>
+                                        </h4>
+                                        <p class="text-gray-600">
+                                            <%= booking.flight_details ? booking.flight_details.route_display : 'Unknown Route' %>
+                                        </p>
+                                    </div>
+                                    <span class="status-badge status-<%= booking.booking_status.replace('_', '-') %>">
+                                        <%= booking.booking_status.charAt(0).toUpperCase() + booking.booking_status.slice(1).replace('_', ' ') %>
+                                    </span>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                    <div>
+                                        <p class="text-xs text-gray-500 mb-1">Booking Reference</p>
+                                        <p class="font-semibold text-gray-800"><%= booking.booking_reference %></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500 mb-1">Date</p>
+                                        <p class="font-semibold text-gray-800">
+                                            <%= new Date(booking.flight_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) %>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500 mb-1">Seat</p>
+                                        <p class="font-semibold text-gray-800"><%= booking.seat_number || 'Not assigned' %></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500 mb-1">Class</p>
+                                        <p class="font-semibold text-gray-800"><%= booking.cabin_class || 'Economy' %></p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex gap-2">
+                                    <% if (booking.boarding_pass) { %>
+                                    <a href="/passenger/boarding-pass/<%= booking.booking_reference %>" 
+                                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
+                                        <i class="fas fa-download mr-1"></i>Boarding Pass
+                                    </a>
+                                    <% } %>
+                                    <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm">
+                                        <i class="fas fa-info-circle mr-1"></i>Details
+                                    </button>
+                                </div>
+                            </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+            
+            <!-- Boarding Passes Section -->
+            <div id="boarding-passes-section" class="content-section">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-passport mr-2 text-purple-600"></i>
+                        Boarding Passes
+                    </h3>
+                    
+                    <% const boardingPasses = bookings.filter(b => b.boarding_pass); %>
+                    <% if (boardingPasses.length === 0) { %>
+                        <div class="text-center py-12">
+                            <i class="fas fa-passport text-5xl text-gray-300 mb-4"></i>
+                            <h4 class="text-xl font-semibold text-gray-700 mb-2">No Boarding Passes Yet</h4>
+                            <p class="text-gray-500 mb-6">Complete check-in to get your boarding pass</p>
+                            <a href="/checkin" class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-lg">
+                                <i class="fas fa-check-circle mr-2"></i>Check In Now
+                            </a>
+                        </div>
+                    <% } else { %>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <% boardingPasses.forEach(booking => { %>
+                            <div class="flight-card p-6">
+                                <div class="border-b border-gray-200 pb-4 mb-4">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h4 class="font-bold text-2xl text-gray-800">
+                                                <%= booking.flight_details.flight_code %>
+                                            </h4>
+                                            <p class="text-gray-600">
+                                                <%= booking.flight_details.route_display %>
+                                            </p>
+                                        </div>
+                                        <i class="fas fa-plane text-3xl text-blue-600"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-3 mb-4">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Passenger</span>
+                                        <span class="font-semibold"><%= user.full_name %></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Seat</span>
+                                        <span class="font-semibold text-blue-600 text-lg"><%= booking.seat_number %></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Gate</span>
+                                        <span class="font-semibold"><%= booking.flight_details.gate %></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Boarding Time</span>
+                                        <span class="font-semibold"><%= booking.boarding_pass.boarding_time %></span>
+                                    </div>
+                                </div>
+                                
+                                <a href="/passenger/boarding-pass/<%= booking.booking_reference %>" 
+                                   class="block w-full text-center px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition shadow">
+                                    <i class="fas fa-qrcode mr-2"></i>View Full Boarding Pass
+                                </a>
+                            </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+            
+            <!-- Baggage Tracking Section -->
+            <div id="baggage-section" class="content-section">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-suitcase mr-2 text-purple-600"></i>
+                        Baggage Tracking
+                    </h3>
+                    
+                    <% const baggageBookings = bookings.filter(b => b.baggage_details); %>
+                    <% if (baggageBookings.length === 0) { %>
+                        <div class="text-center py-12">
+                            <i class="fas fa-suitcase text-5xl text-gray-300 mb-4"></i>
+                            <h4 class="text-xl font-semibold text-gray-700 mb-2">No Checked Baggage</h4>
+                            <p class="text-gray-500">You don't have any checked baggage at the moment</p>
+                        </div>
+                    <% } else { %>
+                        <div class="space-y-4">
+                            <% baggageBookings.forEach(booking => { %>
+                            <div class="flight-card p-5">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h4 class="font-bold text-lg">
+                                            <%= booking.baggage_details.baggage_tag %>
+                                        </h4>
+                                        <p class="text-gray-600">
+                                            Flight <%= booking.flight_code %> - <%= booking.flight_details.route_display %>
+                                        </p>
+                                    </div>
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                                        <%= booking.baggage_details.status.replace('_', ' ').toUpperCase() %>
+                                    </span>
+                                </div>
+                                
+                                <div class="grid grid-cols-3 gap-4 mb-4">
+                                    <div>
+                                        <p class="text-xs text-gray-500">Weight</p>
+                                        <p class="font-semibold"><%= booking.baggage_details.weight %>kg</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500">Location</p>
+                                        <p class="font-semibold capitalize">
+                                            <%= booking.baggage_details.current_location.replace('_', ' ') %>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500">Destination</p>
+                                        <p class="font-semibold"><%= booking.baggage_details.destination_airport %></p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Baggage Journey Progress -->
+                                <div class="relative pt-4">
+                                    <div class="flex justify-between text-xs text-gray-600 mb-2">
+                                        <span>Check-in</span>
+                                        <span>Sorting</span>
+                                        <span>Loading</span>
+                                        <span>In Transit</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full" 
+                                             style="width: <%= booking.baggage_details.status === 'checked_in' ? '25%' : 
+                                                                 booking.baggage_details.status === 'sorting_area' ? '50%' : 
+                                                                 booking.baggage_details.status === 'loaded' ? '75%' : '100%' %>">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+            
+            <!-- Profile Section -->
+            <div id="profile-section" class="content-section">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-user-cog mr-2 text-blue-600"></i>
+                        Profile Settings
+                    </h3>
+                    
+                    <div class="text-center py-12">
+                        <div class="w-24 h-24 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-5xl mx-auto mb-4">
+                            <%= user.avatar %>
+                        </div>
+                        <h4 class="text-2xl font-bold text-gray-800 mb-1"><%= user.full_name %></h4>
+                        <p class="text-gray-600 mb-2"><%= user.email %></p>
+                        <% if (user.passport_number) { %>
+                        <p class="text-gray-500 text-sm">
+                            <i class="fas fa-passport mr-1"></i>Passport: <%= user.passport_number %>
+                        </p>
+                        <% } %>
+                        
+                        <div class="mt-8 max-w-md mx-auto">
+                            <button class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition mb-3">
+                                <i class="fas fa-edit mr-2"></i>Edit Profile
+                            </button>
+                            <button class="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                                <i class="fas fa-key mr-2"></i>Change Password
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            document.getElementById('current-date-time').textContent = 
+                now.toLocaleDateString('en-US', options);
+        }
+        
+        // Show section function
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(`${section}-section`).classList.add('active');
+            
+            // Update current section title
+            const titles = {
+                dashboard: 'Passenger Dashboard',
+                bookings: 'My Bookings',
+                'boarding-passes': 'Boarding Passes',
+                baggage: 'Baggage Tracking',
+                profile: 'Profile Settings'
+            };
+            document.getElementById('current-section-title').textContent = titles[section] || 'Passenger Dashboard';
+            
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === section) {
+                    link.classList.add('active');
+                }
+            });
+        }
+        
+        // Initialize
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+    </script>
+</body>
+</html>

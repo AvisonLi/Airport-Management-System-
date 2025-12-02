@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Ground Services - Airport Management System' %></title>
+    <link rel="stylesheet" href="/css/airport-system.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>✈ AMS</h2>
+            <span>AIRPORT MANAGEMENT SYSTEM</span>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item" data-section="passenger">
+                <a href="/dashboard">
+                    <i class="icon">👤</i>
+                    <span>Passenger Services</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="boarding">
+                <a href="/section/boarding">
+                    <i class="icon">🚪</i>
+                    <span>Boarding & Gates</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="aircraft">
+                <a href="/section/aircraft">
+                    <i class="icon">🛩</i>
+                    <span>Aircraft & Crew</span>
+                </a>
+            </li>
+            <li class="nav-item active" data-section="ground">
+                <a href="/ground">
+                    <i class="icon">🚛</i>
+                    <span>Ground Services</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="crew">
+                <a href="/section/crew">
+                    <i class="icon">👷</i>
+                    <span>Crew Management</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="breadcrumb">
+                <span id="current-section">Ground Services & Gate Management</span>
+            </div>
+            <div class="user-info">
+                <div class="user-details">
+                    <span class="user-name"><%= user?.full_name || 'Admin User' %></span>
+                    <span class="user-role"><%= user?.role || 'admin' %></span>
+                </div>
+                <div class="avatar"><%= user?.avatar || '👨‍💼' %></div>
+                <a href="/logout" class="logout-btn">
+                    <span>🚪</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Ground Services Section -->
+        <section id="ground-section" class="content-section active">
+            <h1>Ground Services & Gate Management</h1>
+            
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Pending Services</h3>
+                    <div class="value" id="pendingCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>In Progress</h3>
+                    <div class="value" id="inProgressCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Completed Today</h3>
+                    <div class="value" id="completedCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Services</h3>
+                    <div class="value" id="totalCount">0</div>
+                </div>
+            </div>
+
+            <!-- Ground Services Table -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>🚛 Ground Services</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="showAddServiceModal()">
+                            ➕ New Service
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="loadServices()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="services-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Service ID</th>
+                                    <th>Type</th>
+                                    <th>Flight</th>
+                                    <th>Scheduled Time</th>
+                                    <th>Assigned Crew</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servicesTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 40px;">
+                                        Loading services...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add Service Modal -->
+    <div id="addServiceModal" class="modal">
+        <div class="modal-content">
+            <h2>New Service Request</h2>
+            <form id="addServiceForm">
+                <div class="form-group">
+                    <label>Service Type *</label>
+                    <select id="serviceType" required>
+                        <option value="">Select type...</option>
+                        <option value="Aircraft Cleaning">Aircraft Cleaning</option>
+                        <option value="Fueling">Fueling</option>
+                        <option value="Catering">Catering</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Baggage Handling">Baggage Handling</option>
+                        <option value="Pushback">Pushback</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Flight Code *</label>
+                    <input type="text" id="flightCode" placeholder="e.g., NF001" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Scheduled Time *</label>
+                    <input type="datetime-local" id="scheduledTime" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="priority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Estimated Duration (minutes)</label>
+                    <input type="number" id="estimatedDuration" value="30" min="5" max="300">
+                </div>
+
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="notes" placeholder="Additional notes or requirements..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddServiceModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Create Service
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Service Modal -->
+    <div id="updateServiceModal" class="modal">
+        <div class="modal-content">
+            <h2>Update Service</h2>
+            <form id="updateServiceForm">
+                <input type="hidden" id="updateServiceId">
+                
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="updateStatus">
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="updateNotes"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeUpdateServiceModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        Update Service
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/ground.js"></script>
+</body>
+</html>

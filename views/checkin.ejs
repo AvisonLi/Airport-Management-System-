@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/airport-system.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="checkin-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1><i class="fas fa-plane-departure"></i> Online Check-in</h1>
+            <p>Complete your check-in in 4 easy steps</p>
+        </div>
+
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step active" id="step-indicator-1">
+                <div class="step-circle">1</div>
+                <div class="step-title">Verify Booking</div>
+            </div>
+            <div class="step" id="step-indicator-2">
+                <div class="step-circle">2</div>
+                <div class="step-title">Passenger Info</div>
+            </div>
+            <div class="step" id="step-indicator-3">
+                <div class="step-circle">3</div>
+                <div class="step-title">Select Seat</div>
+            </div>
+            <div class="step" id="step-indicator-4">
+                <div class="step-circle">4</div>
+                <div class="step-title">Boarding Pass</div>
+            </div>
+        </div>
+
+        <!-- Step 1: Verify Booking -->
+        <div class="step-content active" id="step-1">
+            <h2><i class="fas fa-search"></i> Find Your Booking</h2>
+            <p class="text-muted mb-4">Please enter your booking reference and full name to begin check-in</p>
+
+            <div class="alert-checkin info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Check-in opens 24 hours before departure</strong><br>
+                    Please have your booking reference and passport ready
+                </div>
+            </div>
+
+            <form id="booking-form" class="passenger-form-grid">
+                <div class="form-group">
+                    <label for="booking-ref">
+                        <i class="fas fa-ticket-alt"></i> Booking Reference
+                    </label>
+                    <input type="text" 
+                           id="booking-ref" 
+                           name="bookingRef" 
+                           class="form-control" 
+                           placeholder="e.g., ABC123" 
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="full-name">
+                        <i class="fas fa-user"></i> Full Name
+                    </label>
+                    <input type="text" 
+                           id="full-name" 
+                           name="fullName" 
+                           class="form-control" 
+                           placeholder="As shown on passport" 
+                           required>
+                </div>
+            </form>
+
+            <div class="action-buttons">
+                <button type="button" class="btn-back" onclick="window.location.href='/passenger'">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </button>
+                <button type="button" class="btn-next" onclick="verifyBooking()">
+                    Continue <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Passenger Information -->
+        <div class="step-content" id="step-2">
+            <!-- Flight Info Card -->
+            <div class="flight-info-card">
+                <div class="flight-route">
+                    <div>
+                        <div class="airport-code" id="origin-code">TPE</div>
+                        <div class="flight-detail-label">Taipei Taoyuan</div>
+                    </div>
+                    <div class="flight-arrow">
+                        <i class="fas fa-plane"></i>
+                    </div>
+                    <div>
+                        <div class="airport-code" id="destination-code">NRT</div>
+                        <div class="flight-detail-label">Tokyo Narita</div>
+                    </div>
+                </div>
+
+                <div class="flight-details">
+                    <div class="flight-detail-item">
+                        <i class="fas fa-plane-departure"></i>
+                        <div>
+                            <div class="flight-detail-label">Flight Number</div>
+                            <div class="flight-detail-value" id="flight-number">CI100</div>
+                        </div>
+                    </div>
+                    <div class="flight-detail-item">
+                        <i class="fas fa-calendar"></i>
+                        <div>
+                            <div class="flight-detail-label">Date</div>
+                            <div class="flight-detail-value" id="flight-date">Dec 15, 2025</div>
+                        </div>
+                    </div>
+                    <div class="flight-detail-item">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <div class="flight-detail-label">Departure</div>
+                            <div class="flight-detail-value" id="departure-time">09:00</div>
+                        </div>
+                    </div>
+                    <div class="flight-detail-item">
+                        <i class="fas fa-user"></i>
+                        <div>
+                            <div class="flight-detail-label">Passenger</div>
+                            <div class="flight-detail-value" id="passenger-name">John Doe</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h2><i class="fas fa-id-card"></i> Confirm Passenger Information</h2>
+            <p class="text-muted mb-4">Please verify your details match your travel documents</p>
+
+            <form id="passenger-info-form" class="passenger-form-grid">
+                <div class="form-group">
+                    <label for="first-name">
+                        <i class="fas fa-user"></i> First Name
+                    </label>
+                    <input type="text" 
+                           id="first-name" 
+                           name="firstName" 
+                           class="form-control" 
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="full-name-confirm">
+                        <i class="fas fa-user"></i> Full Name
+                    </label>
+                    <input type="text" 
+                           id="full-name-confirm" 
+                           name="fullNameConfirm" 
+                           class="form-control" 
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="passport">
+                        <i class="fas fa-passport"></i> Passport Number
+                    </label>
+                    <input type="text" 
+                           id="passport" 
+                           name="passport" 
+                           class="form-control" 
+                           placeholder="A12345678" 
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="nationality">
+                        <i class="fas fa-flag"></i> Nationality
+                    </label>
+                    <select id="nationality" name="nationality" class="form-control" required>
+                        <option value="">Select nationality</option>
+                        <option value="TW">Taiwan</option>
+                        <option value="US">United States</option>
+                        <option value="JP">Japan</option>
+                        <option value="CN">China</option>
+                        <option value="KR">South Korea</option>
+                        <option value="GB">United Kingdom</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="dob">
+                        <i class="fas fa-birthday-cake"></i> Date of Birth
+                    </label>
+                    <input type="date" 
+                           id="dob" 
+                           name="dob" 
+                           class="form-control" 
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">
+                        <i class="fas fa-envelope"></i> Email
+                    </label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           class="form-control" 
+                           placeholder="your.email@example.com" 
+                           required>
+                </div>
+            </form>
+
+            <div class="action-buttons">
+                <button type="button" class="btn-back" onclick="previousStep(1)">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <button type="button" class="btn-next" onclick="nextStep(3)">
+                    Continue <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 3: Seat Selection -->
+        <div class="step-content" id="step-3">
+            <h2><i class="fas fa-couch"></i> Select Your Seat</h2>
+            <p class="text-muted mb-4">Choose your preferred seat from the available options</p>
+
+            <!-- Seat Legend -->
+            <div class="seat-map-container">
+                <div class="seat-legend">
+                    <div class="legend-item">
+                        <div class="legend-box available"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box occupied"></div>
+                        <span>Occupied</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box selected"></div>
+                        <span>Selected</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box premium"></div>
+                        <span>Premium (+$50)</span>
+                    </div>
+                </div>
+
+                <!-- Seat Map -->
+                <div class="seat-map" id="seat-map">
+                    <!-- Premium Class -->
+                    <div class="seat-section">
+                        <div class="seat-section-title">Premium Class</div>
+                        <div class="seat-row">
+                            <div class="seat-row-label">1</div>
+                            <div class="seat premium" data-seat="1A" onclick="selectSeat('1A')">1A</div>
+                            <div class="seat premium" data-seat="1B" onclick="selectSeat('1B')">1B</div>
+                            <div class="seat aisle"></div>
+                            <div class="seat premium occupied" data-seat="1C">1C</div>
+                            <div class="seat premium" data-seat="1D" onclick="selectSeat('1D')">1D</div>
+                        </div>
+                        <div class="seat-row">
+                            <div class="seat-row-label">2</div>
+                            <div class="seat premium" data-seat="2A" onclick="selectSeat('2A')">2A</div>
+                            <div class="seat premium occupied" data-seat="2B">2B</div>
+                            <div class="seat aisle"></div>
+                            <div class="seat premium" data-seat="2C" onclick="selectSeat('2C')">2C</div>
+                            <div class="seat premium" data-seat="2D" onclick="selectSeat('2D')">2D</div>
+                        </div>
+                    </div>
+
+                    <!-- Economy Class -->
+                    <div class="seat-section">
+                        <div class="seat-section-title">Economy Class</div>
+                        <div class="seat-row">
+                            <div class="seat-row-label">3</div>
+                            <div class="seat available" data-seat="3A" onclick="selectSeat('3A')">3A</div>
+                            <div class="seat available" data-seat="3B" onclick="selectSeat('3B')">3B</div>
+                            <div class="seat available" data-seat="3C" onclick="selectSeat('3C')">3C</div>
+                            <div class="seat aisle"></div>
+                            <div class="seat occupied" data-seat="3D">3D</div>
+                            <div class="seat available" data-seat="3E" onclick="selectSeat('3E')">3E</div>
+                            <div class="seat available" data-seat="3F" onclick="selectSeat('3F')">3F</div>
+                        </div>
+                        <div class="seat-row">
+                            <div class="seat-row-label">4</div>
+                            <div class="seat available" data-seat="4A" onclick="selectSeat('4A')">4A</div>
+                            <div class="seat occupied" data-seat="4B">4B</div>
+                            <div class="seat available" data-seat="4C" onclick="selectSeat('4C')">4C</div>
+                            <div class="seat aisle"></div>
+                            <div class="seat available" data-seat="4D" onclick="selectSeat('4D')">4D</div>
+                            <div class="seat available" data-seat="4E" onclick="selectSeat('4E')">4E</div>
+                            <div class="seat occupied" data-seat="4F">4F</div>
+                        </div>
+                        <div class="seat-row">
+                            <div class="seat-row-label">5</div>
+                            <div class="seat available" data-seat="5A" onclick="selectSeat('5A')">5A</div>
+                            <div class="seat available" data-seat="5B" onclick="selectSeat('5B')">5B</div>
+                            <div class="seat available" data-seat="5C" onclick="selectSeat('5C')">5C</div>
+                            <div class="seat aisle"></div>
+                            <div class="seat available" data-seat="5D" onclick="selectSeat('5D')">5D</div>
+                            <div class="seat available" data-seat="5E" onclick="selectSeat('5E')">5E</div>
+                            <div class="seat available" data-seat="5F" onclick="selectSeat('5F')">5F</div>
+                        </div>
+                        <div class="seat-row">
+                            <div class="seat-row-label">6</div>
+                            <div class="seat available" data-seat="6A" onclick="selectSeat('6A')">6A</div>
+                            <div class="seat available" data-seat="6B" onclick="selectSeat('6B')">6B</div>
+                            <div class="seat available" data-seat="6C" onclick="selectSeat('6C')">6C</div>
+                            <div class="seat aisle"></div>
+                            <div class="seat available" data-seat="6D" onclick="selectSeat('6D')">6D</div>
+                            <div class="seat available" data-seat="6E" onclick="selectSeat('6E')">6E</div>
+                            <div class="seat available" data-seat="6F" onclick="selectSeat('6F')">6F</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Seat Info -->
+                <div class="seat-selected-info" id="seat-selected-info" style="display: none;">
+                    <h4><i class="fas fa-check-circle"></i> Seat Selected</h4>
+                    <p><strong>Seat Number:</strong> <span id="selected-seat-number"></span></p>
+                    <p><strong>Additional Fee:</strong> $<span id="selected-seat-fee">0</span></p>
+                </div>
+            </div>
+
+            <!-- Baggage Options -->
+            <h3 class="mt-5 mb-3"><i class="fas fa-suitcase"></i> Add Baggage (Optional)</h3>
+            <div class="baggage-options">
+                <div class="baggage-option" onclick="selectBaggage('none')">
+                    <input type="radio" name="baggage" value="none" checked>
+                    <div class="baggage-icon"><i class="fas fa-ban"></i></div>
+                    <div class="baggage-title">No Extra Baggage</div>
+                    <div class="baggage-description">Carry-on only (7kg)</div>
+                    <div class="baggage-price">$0</div>
+                </div>
+
+                <div class="baggage-option" onclick="selectBaggage('20kg')">
+                    <input type="radio" name="baggage" value="20kg">
+                    <div class="baggage-icon"><i class="fas fa-suitcase"></i></div>
+                    <div class="baggage-title">20kg Checked Bag</div>
+                    <div class="baggage-description">Standard checked baggage</div>
+                    <div class="baggage-price">$30</div>
+                </div>
+
+                <div class="baggage-option" onclick="selectBaggage('32kg')">
+                    <input type="radio" name="baggage" value="32kg">
+                    <div class="baggage-icon"><i class="fas fa-suitcase-rolling"></i></div>
+                    <div class="baggage-title">32kg Checked Bag</div>
+                    <div class="baggage-description">Extra baggage allowance</div>
+                    <div class="baggage-price">$50</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button type="button" class="btn-back" onclick="previousStep(2)">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <button type="button" class="btn-next" id="btn-complete-checkin" onclick="completeCheckin()" disabled>
+                    Complete Check-in <i class="fas fa-check"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 4: Boarding Pass -->
+        <div class="step-content" id="step-4">
+            <div class="alert-checkin success">
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Check-in Successful!</strong><br>
+                    Your boarding pass is ready. Please save or print it for boarding.
+                </div>
+            </div>
+
+            <!-- Boarding Pass -->
+            <div class="boarding-pass">
+                <div class="boarding-pass-content">
+                    <div class="boarding-pass-header">
+                        <div class="airline-logo"><i class="fas fa-plane"></i></div>
+                        <div class="boarding-pass-title">BOARDING PASS</div>
+                    </div>
+
+                    <div class="bp-route">
+                        <div class="bp-airport" id="bp-origin">TPE</div>
+                        <div class="bp-arrow"><i class="fas fa-arrow-right"></i></div>
+                        <div class="bp-airport" id="bp-destination">NRT</div>
+                    </div>
+
+                    <div class="boarding-pass-body">
+                        <div class="bp-field">
+                            <div class="bp-label">Passenger</div>
+                            <div class="bp-value" id="bp-passenger">JOHN DOE</div>
+                        </div>
+                        <div class="bp-field">
+                            <div class="bp-label">Flight</div>
+                            <div class="bp-value" id="bp-flight">CI100</div>
+                        </div>
+                        <div class="bp-field">
+                            <div class="bp-label">Date</div>
+                            <div class="bp-value" id="bp-date">15 DEC</div>
+                        </div>
+                        <div class="bp-field">
+                            <div class="bp-label">Departure</div>
+                            <div class="bp-value" id="bp-time">09:00</div>
+                        </div>
+                        <div class="bp-field">
+                            <div class="bp-label">Gate</div>
+                            <div class="bp-value" id="bp-gate">B12</div>
+                        </div>
+                        <div class="bp-field">
+                            <div class="bp-label">Seat</div>
+                            <div class="bp-value" id="bp-seat">12A</div>
+                        </div>
+                        <div class="bp-field">
+                            <div class="bp-label">Boarding</div>
+                            <div class="bp-value" id="bp-boarding">08:30</div>
+                        </div>
+                        <div class="bp-field">
+                            <div class="bp-label">Class</div>
+                            <div class="bp-value" id="bp-class">Economy</div>
+                        </div>
+                    </div>
+
+                    <div class="barcode" id="bp-barcode">
+                        || ABC123456789 ||
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons mt-4">
+                <button type="button" class="btn-print" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Boarding Pass
+                </button>
+                <button type="button" class="btn-download" onclick="downloadBoardingPass()">
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
+                <button type="button" class="btn-next" onclick="window.location.href='/passenger'">
+                    <i class="fas fa-home"></i> Back to Home
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        let selectedSeat = null;
+        let selectedBaggage = 'none';
+        let bookingData = null;
+
+        // Step Navigation
+        function nextStep(step) {
+            // Validate current step before proceeding
+            if (!validateStep(currentStep)) {
+                return;
+            }
+
+            // Hide current step
+            document.getElementById(`step-${currentStep}`).classList.remove('active');
+            document.getElementById(`step-indicator-${currentStep}`).classList.remove('active');
+            document.getElementById(`step-indicator-${currentStep}`).classList.add('completed');
+
+            // Show next step
+            currentStep = step;
+            document.getElementById(`step-${currentStep}`).classList.add('active');
+            document.getElementById(`step-indicator-${currentStep}`).classList.add('active');
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function previousStep(step) {
+            // Hide current step
+            document.getElementById(`step-${currentStep}`).classList.remove('active');
+            document.getElementById(`step-indicator-${currentStep}`).classList.remove('active');
+
+            // Show previous step
+            currentStep = step;
+            document.getElementById(`step-${currentStep}`).classList.add('active');
+            document.getElementById(`step-indicator-${currentStep}`).classList.add('active');
+            document.getElementById(`step-indicator-${currentStep}`).classList.remove('completed');
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function validateStep(step) {
+            switch(step) {
+                case 1:
+                    const bookingRef = document.getElementById('booking-ref').value;
+                    const fullName = document.getElementById('full-name').value;
+                    if (!bookingRef || !fullName) {
+                        alert('Please fill in all required fields');
+                        return false;
+                    }
+                    return true;
+                case 2:
+                    const form = document.getElementById('passenger-info-form');
+                    if (!form.checkValidity()) {
+                        alert('Please fill in all required fields correctly');
+                        return false;
+                    }
+                    return true;
+                case 3:
+                    if (!selectedSeat) {
+                        alert('Please select a seat');
+                        return false;
+                    }
+                    return true;
+                default:
+                    return true;
+            }
+        }
+
+        async function verifyBooking() {
+            const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
+            const fullName = document.getElementById('full-name').value.trim();
+
+            if (!bookingRef || !fullName) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/verify-booking', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ bookingRef, fullName })
+                });
+
+                const data = await response.json();
+                
+                console.log('Full response:', data); // Debug log
+
+                if (response.ok) {
+                    bookingData = data.booking;
+                    console.log('Booking data structure:', bookingData); // Debug log
+                    
+                    if (!bookingData) {
+                        alert('Booking data is empty or undefined');
+                        return;
+                    }
+                    
+                    populateFlightInfo(bookingData);
+                    nextStep(2);
+                } else {
+                    // Show the specific error message from backend
+                    alert(data.message || 'Booking not found. Please check your details.');
+                }
+            } catch (error) {
+                console.error('Error details:', error);
+                alert('An error occurred. Please try again. Check console for details.');
+            }
+        }
+        function populateFlightInfo(booking) {
+        // Log the booking data to see what's actually coming from backend
+        console.log('Booking data received:', booking);
+        
+        // Make sure we're using the correct field names from your database
+        // The backend console log shows what field names are in the document
+        document.getElementById('origin-code').textContent = booking.origin || booking.departure_airport || 'N/A';
+        document.getElementById('destination-code').textContent = booking.destination || booking.arrival_airport || 'N/A';
+        document.getElementById('flight-number').textContent = booking.flightNumber || booking.flight_number || 'N/A';
+        
+        // Parse date - handle different date formats
+        const flightDate = new Date(booking.date || booking.flight_date || booking.departure_date);
+        document.getElementById('flight-date').textContent = flightDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+        
+        document.getElementById('departure-time').textContent = booking.departureTime || booking.departure_time || 'N/A';
+        document.getElementById('passenger-name').textContent = booking.passengerName || 
+            `${booking.first_name || ''} ${booking.last_name || ''}`.trim() || 'N/A';
+
+        // Pre-fill passenger info
+        const names = booking.passengerName ? booking.passengerName.split(' ') : 
+                    [(booking.first_name || ''), (booking.last_name || '')];
+        
+        if (names[0]) {
+            document.getElementById('first-name').value = names[0];
+        }
+        if (names.length > 1) {
+            document.getElementById('last-name-confirm').value = names.slice(1).join(' ');
+        }
+    }
+
+        // Complete Check-in
+        async function completeCheckin() {
+            try {
+                const response = await fetch('/api/complete-checkin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        bookingRef: document.getElementById('booking-ref').value,
+                        seat: selectedSeat,
+                        baggage: selectedBaggage
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    populateBoardingPass(data.boardingPass);
+                    nextStep(4);
+                } else {
+                    alert(data.message || 'Check-in failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            }
+        }
+
+        function populateBoardingPass(bp) {
+    console.log('Populating boarding pass with:', bp);
+    
+    // Basic flight info
+    document.getElementById('bp-origin').textContent = bp.origin || 'HKG';
+    document.getElementById('bp-destination').textContent = bp.destination || 'TPE';
+    document.getElementById('bp-passenger').textContent = bp.passenger ? bp.passenger.toUpperCase() : 'PASSENGER';
+    document.getElementById('bp-flight').textContent = bp.flight || bp.flightNumber || 'N/A';
+    
+    // Format date for boarding pass (short format: 15 DEC)
+    if (bp.date) {
+        const date = new Date(bp.date);
+        const shortDate = date.toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'short'
+        }).toUpperCase();
+        document.getElementById('bp-date').textContent = shortDate;
+    }
+    
+    // Time and gate
+    document.getElementById('bp-time').textContent = bp.time || bp.departureTime || '09:00';
+    document.getElementById('bp-gate').textContent = bp.gate || 'TBA';
+    
+    // Seat - make sure it's a string, not an object
+    let seatNumber = 'N/A';
+    if (typeof bp.seat === 'string') {
+        seatNumber = bp.seat;
+    } else if (bp.seat && typeof bp.seat === 'object') {
+        // If seat is an object, get the seat number property
+        seatNumber = bp.seat.seat || bp.seat.number || 'N/A';
+    }
+    document.getElementById('bp-seat').textContent = seatNumber;
+    
+    // Boarding time
+    document.getElementById('bp-boarding').textContent = bp.boardingTime || '08:30';
+    
+    // Cabin class
+    let cabinClass = 'ECONOMY';
+    if (bp.cabinClass) {
+        cabinClass = bp.cabinClass.toUpperCase();
+    } else if (bp.seat && bp.seat.cabin) {
+        cabinClass = bp.seat.cabin.toUpperCase();
+    } else if (bp.cabin) {
+        cabinClass = bp.cabin.toUpperCase();
+    }
+    document.getElementById('bp-class').textContent = cabinClass;
+    
+    // Barcode
+    document.getElementById('bp-barcode').textContent = bp.barcode ? `|| ${bp.barcode} ||` : '|| SCAN AT GATE ||';
+}
+// Seat Selection Functions
+function selectSeat(seatNumber) {
+    // Remove selected class from all seats
+    document.querySelectorAll('.seat').forEach(seat => {
+        seat.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked seat
+    const seatElement = document.querySelector(`.seat[data-seat="${seatNumber}"]`);
+    if (seatElement) {
+        seatElement.classList.add('selected');
+        selectedSeat = seatNumber;
+        
+        // Show seat selection info
+        document.getElementById('seat-selected-info').style.display = 'block';
+        document.getElementById('selected-seat-number').textContent = seatNumber;
+        
+        // Calculate seat fee
+        let seatFee = 0;
+        if (seatElement.classList.contains('premium')) {
+            seatFee = 50;
+        }
+        document.getElementById('selected-seat-fee').textContent = seatFee;
+        
+        // Enable complete check-in button
+        document.getElementById('btn-complete-checkin').disabled = false;
+    }
+}
+
+function selectBaggage(baggageType) {
+    selectedBaggage = baggageType;
+    
+    // Remove selected class from all baggage options
+    document.querySelectorAll('.baggage-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked option
+    const baggageOption = event.currentTarget || event.target.closest('.baggage-option');
+    baggageOption.classList.add('selected');
+    
+    // Also check the radio button
+    const radioButton = baggageOption.querySelector('input[type="radio"]');
+    if (radioButton) {
+        radioButton.checked = true;
+    }
+}
+
+// Add CSS for selected baggage option
+const style = document.createElement('style');
+style.textContent = `
+    .baggage-option.selected {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+    .baggage-option.selected .baggage-price {
+        color: #3b82f6;
+        font-weight: bold;
+    }
+`;
+document.head.appendChild(style);
+
+// Initialize seat selection
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default baggage selection
+    selectBaggage('none');
+    
+    // Add click handlers to seats
+    document.querySelectorAll('.seat:not(.occupied):not(.aisle)').forEach(seat => {
+        seat.addEventListener('click', function() {
+            selectSeat(this.dataset.seat);
+        });
+    });
+    
+    // Add click handlers to baggage options
+    document.querySelectorAll('.baggage-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const value = this.querySelector('input[type="radio"]').value;
+            selectBaggage(value);
+        });
+    });
+});
+
+async function verifyBooking() {
+    const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
+    const fullName = document.getElementById('full-name').value.trim();
+
+    if (!bookingRef || !fullName) {
+        showAlert('Please fill in all fields', 'error');
+        return;
+    }
+
+    // Show loading state
+    const verifyBtn = document.querySelector('.btn-next');
+    const originalText = verifyBtn.innerHTML;
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+
+    try {
+        const response = await fetch('/api/verify-booking', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                bookingRef: bookingRef, 
+                fullName: fullName 
+            })
+        });
+
+        const data = await response.json();
+        
+        console.log('Verification response:', data);
+        
+        // Reset button
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = originalText;
+        
+        if (data.success && data.booking) {
+            bookingData = data.booking;
+            console.log('Booking data:', bookingData);
+            
+            // Populate flight information
+            populateFlightInfo(bookingData);
+            
+            // Pre-fill passenger information
+            prefillPassengerInfo(bookingData);
+            
+            // Move to next step
+            nextStep(2);
+            
+            showAlert('Booking verified successfully!', 'success');
+        } else {
+            showAlert(data.message || 'Booking verification failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error verifying booking:', error);
+        
+        // Reset button
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = originalText;
+        
+        showAlert('An error occurred. Please try again.', 'error');
+    }
+}
+
+// Helper function to show alerts
+function showAlert(message, type = 'info') {
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.custom-alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `custom-alert alert-${type}`;
+    alertDiv.innerHTML = `
+        <div class="alert-content">
+            <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+            <button class="alert-close">&times;</button>
+        </div>
+    `;
+    
+    // Add to page
+    document.querySelector('.checkin-container').prepend(alertDiv);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentElement) {
+            alertDiv.remove();
+        }
+    }, 5000);
+    
+    // Close button handler
+    alertDiv.querySelector('.alert-close').addEventListener('click', () => {
+        alertDiv.remove();
+    });
+}
+
+// Populate flight information
+function populateFlightInfo(booking) {
+    console.log('Populating flight info with:', booking);
+    
+    // Set origin and destination
+    document.getElementById('origin-code').textContent = booking.origin || 'HKG';
+    document.getElementById('destination-code').textContent = booking.destination || 'TPE';
+    document.getElementById('flight-number').textContent = booking.flight_code || booking.flight_number;
+    
+    // Format and set date
+    const flightDate = booking.flight_date ? new Date(booking.flight_date) : new Date();
+    document.getElementById('flight-date').textContent = flightDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+    
+    // Set departure time
+    document.getElementById('departure-time').textContent = booking.departure_time || '09:00';
+    
+    // Set passenger name
+    document.getElementById('passenger-name').textContent = booking.passenger_name || 'Passenger';
+    
+    // Also update boarding pass section
+    document.getElementById('bp-origin').textContent = booking.origin || 'HKG';
+    document.getElementById('bp-destination').textContent = booking.destination || 'TPE';
+    document.getElementById('bp-flight').textContent = booking.flight_code || booking.flight_number;
+    
+    // Format date for boarding pass (e.g., "15 DEC")
+    const bpDate = flightDate.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short'
+    }).toUpperCase();
+    document.getElementById('bp-date').textContent = bpDate;
+}
+
+// Pre-fill passenger information
+function prefillPassengerInfo(booking) {
+    const passengerName = booking.passenger_name || '';
+    const nameParts = passengerName.split(' ');
+    
+    // Set first name (first part)
+    if (nameParts.length > 0) {
+        document.getElementById('first-name').value = nameParts[0];
+    }
+    
+    // Set full name confirm
+    document.getElementById('full-name-confirm').value = passengerName;
+    
+    // If you have a separate last name field
+    const lastNameField = document.getElementById('last-name-confirm');
+    if (lastNameField && nameParts.length > 1) {
+        lastNameField.value = nameParts.slice(1).join(' ');
+    }
+}
+
+// Also update the completeCheckin function
+async function completeCheckin() {
+    if (!selectedSeat) {
+        alert('Please select a seat');
+        return;
+    }
+    
+    const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
+    const fullName = document.getElementById('full-name').value.trim();
+    const passport = document.getElementById('passport') ? document.getElementById('passport').value : '';
+    
+    if (!bookingRef || !fullName) {
+        alert('Please verify your booking first');
+        return;
+    }
+    
+    // Determine seat type and fee
+    const seatElement = document.querySelector(`.seat[data-seat="${selectedSeat}"]`);
+    const isPremiumSeat = seatElement ? seatElement.classList.contains('premium') : false;
+    const seatFee = isPremiumSeat ? 50 : 0;
+    const cabinClass = isPremiumSeat ? 'Premium' : 'Economy';
+    
+    // Determine baggage
+    let baggageWeight = 0;
+    let baggageFee = 0;
+    let baggageType = 'carry-on';
+    
+    switch(selectedBaggage) {
+        case '20kg':
+            baggageWeight = 20;
+            baggageFee = 30;
+            baggageType = 'checked';
+            break;
+        case '32kg':
+            baggageWeight = 32;
+            baggageFee = 50;
+            baggageType = 'checked';
+            break;
+        default:
+            baggageWeight = 7;
+            baggageFee = 0;
+            baggageType = 'carry-on';
+    }
+    
+    // Get flight info from booking data
+    const flightNumber = document.getElementById('flight-number').textContent;
+    const passengerName = document.getElementById('passenger-name').textContent;
+    
+    // Show loading state
+    const button = document.getElementById('btn-complete-checkin');
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    try {
+        const response = await fetch('/api/complete-checkin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                passenger: {
+                    name: passengerName,
+                    bookingRef: bookingRef,
+                    passport: passport
+                },
+                seat: {
+                    seat: selectedSeat,  // String seat number
+                    cabin: cabinClass    // String cabin class
+                },
+                baggage: {
+                    type: baggageType,
+                    weight: baggageWeight
+                }
+            })
+        });
+        
+        const data = await response.json();
+        
+        // Reset button
+        button.disabled = false;
+        button.innerHTML = originalText;
+        
+        if (data.success && data.boardingPass) {
+            console.log('Boarding pass data received:', data.boardingPass);
+            populateBoardingPass(data.boardingPass);
+            nextStep(4);
+        } else {
+            alert(data.message || 'Check-in failed. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error completing check-in:', error);
+        button.disabled = false;
+        button.innerHTML = originalText;
+        alert('An error occurred during check-in. Please try again.');
+    }
+}
+
+// Export functions for global access
+window.selectSeat = selectSeat;
+window.selectBaggage = selectBaggage;
+window.completeCheckin = completeCheckin;
+    </script>
+</body>
+</html>

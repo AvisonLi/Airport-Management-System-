@@ -1,0 +1,55 @@
+Error: /home/student/Downloads/ndd/views/section/boarding.ejs:11
+    9| </head>
+
+    10| <body>
+
+ >> 11|     <%- include('partials/header') %>
+
+    12| 
+
+    13|     <div class="boarding-container">
+
+    14|         <!-- Page Header -->
+
+
+Could not find the include file "partials/header"
+    at getIncludePath (/home/student/Downloads/ndd/node_modules/ejs/lib/ejs.js:185:13)
+    at includeFile (/home/student/Downloads/ndd/node_modules/ejs/lib/ejs.js:311:19)
+    at include (/home/student/Downloads/ndd/node_modules/ejs/lib/ejs.js:701:16)
+    at eval ("/home/student/Downloads/ndd/views/section/boarding.ejs":15:17)
+    at boarding (/home/student/Downloads/ndd/node_modules/ejs/lib/ejs.js:703:17)
+    at tryHandleCache (/home/student/Downloads/ndd/node_modules/ejs/lib/ejs.js:274:36)
+    at exports.renderFile [as engine] (/home/student/Downloads/ndd/node_modules/ejs/lib/ejs.js:491:10)
+    at View.render (/home/student/Downloads/ndd/node_modules/express/lib/view.js:135:8)
+    at tryRender (/home/student/Downloads/ndd/node_modules/express/lib/application.js:657:10)
+    at Function.render (/home/student/Downloads/ndd/node_modules/express/lib/application.js:609:3)
+
+
+
+    // ============================================
+// ADMIN / STAFF SECTION ROUTES (views/section/)
+// ============================================
+
+// Boarding Management
+app.get('/section/boarding', requireAdminAuth, (req, res) => {
+  res.render('section/boarding', { 
+    title: 'Boarding Management - HKAP Airlines',
+    user: req.session.user 
+  });
+});
+
+// Aircraft Management  
+app.get('/section/aircraft', requireAdminAuth, (req, res) => {
+  res.render('section/aircraft', { 
+    title: 'Aircraft Management - HKAP Airlines',
+    user: req.session.user 
+  });
+});
+
+// Ground Services Dashboard
+app.get('/section/ground', requireAdminAuth, (req, res) => {
+  res.render('section/ground', { 
+    title: 'Ground Operations Dashboard - HKAP Airlines',
+    user: req.session.user 
+  });
+});

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Crew Management - Airport Management System' %></title>
+    <link rel="stylesheet" href="/css/airport-system.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>✈ AMS</h2>
+            <span>AIRPORT MANAGEMENT SYSTEM</span>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item" data-section="passenger">
+                <a href="/dashboard">
+                    <i class="icon">👤</i>
+                    <span>Passenger Services</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="boarding">
+                <a href="/section/boarding">
+                    <i class="icon">🚪</i>
+                    <span>Boarding & Gates</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="aircraft">
+                <a href="/section/aircraft">
+                    <i class="icon">🛩</i>
+                    <span>Aircraft & Crew</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="ground">
+                <a href="/ground">
+                    <i class="icon">🚛</i>
+                    <span>Ground Services</span>
+                </a>
+            </li>
+            <li class="nav-item active" data-section="crew">
+                <a href="/section/crew">
+                    <i class="icon">👷</i>
+                    <span>Crew Management</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="breadcrumb">
+                <span id="current-section">Crew Management</span>
+            </div>
+            <div class="user-info">
+                <div class="user-details">
+                    <span class="user-name"><%= user?.full_name || 'Admin User' %></span>
+                    <span class="user-role"><%= user?.role || 'admin' %></span>
+                </div>
+                <div class="avatar"><%= user?.avatar || '👨‍💼' %></div>
+                <a href="/logout" class="logout-btn">
+                    <span>🚪</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Crew Management Section -->
+        <section id="crew-section" class="content-section active">
+            <h1>Crew Management</h1>
+            
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Crew</h3>
+                    <div class="value" id="totalCrewCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Available</h3>
+                    <div class="value" id="availableCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>On Task</h3>
+                    <div class="value" id="onTaskCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Tasks Today</h3>
+                    <div class="value" id="tasksToday">0</div>
+                </div>
+            </div>
+
+            <!-- Crew Members -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>👥 Crew Members</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="showAddCrewModal()">
+                            ➕ Add Crew Member
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="loadCrew()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="crew-grid" id="crewGrid">
+                        <p style="text-align: center; padding: 40px; color: #666;">
+                            Loading crew members...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add Crew Modal -->
+    <div id="addCrewModal" class="modal">
+        <div class="modal-content">
+            <h2>Add New Crew Member</h2>
+            <form id="addCrewForm">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="fullName" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Crew Type *</label>
+                    <select id="crewType" required>
+                        <option value="">Select type...</option>
+                        <option value="cleaning">Cleaning Crew</option>
+                        <option value="fueling">Fueling Crew</option>
+                        <option value="catering">Catering Crew</option>
+                        <option value="maintenance">Maintenance Crew</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Qualification *</label>
+                    <input type="text" id="qualification" required placeholder="e.g., Level 2 Certified">
+                </div>
+
+                <div class="form-group">
+                    <label>Contact Number *</label>
+                    <input type="tel" id="contactNumber" required placeholder="e.g., +1234567890">
+                </div>
+
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="status">
+                        <option value="available">Available</option>
+                        <option value="on_task">On Task</option>
+                        <option value="off_duty">Off Duty</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddCrewModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Add Crew Member
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Crew Modal -->
+    <div id="updateCrewModal" class="modal">
+        <div class="modal-content">
+            <h2>Update Crew Member</h2>
+            <form id="updateCrewForm">
+                <input type="hidden" id="updateCrewId">
+                
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="updateStatus">
+                        <option value="available">Available</option>
+                        <option value="on_task">On Task</option>
+                        <option value="off_duty">Off Duty</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Contact Number</label>
+                    <input type="tel" id="updateContactNumber">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeUpdateCrewModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        Update
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/crew.js"></script>
+</body>
+</html>

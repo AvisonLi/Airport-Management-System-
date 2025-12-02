@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+        }
+        .login-left {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 60px 40px;
+            color: white;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .login-right {
+            padding: 60px 40px;
+            flex: 1;
+        }
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        .alert {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .alert-error {
+            background-color: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+        .alert-success {
+            background-color: #d1fae5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .feature-item i {
+            font-size: 24px;
+            margin-right: 15px;
+            color: #60a5fa;
+        }
+        @media (max-width: 768px) {
+            .login-card {
+                flex-direction: column;
+            }
+            .login-left {
+                padding: 40px 30px;
+            }
+            .login-right {
+                padding: 40px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <!-- Left Side - Branding -->
+        <div class="login-left">
+            <div class="mb-8">
+                <i class="fas fa-plane-departure text-6xl mb-4"></i>
+                <h1 class="text-4xl font-bold mb-2">HKAP Airlines</h1>
+                <p class="text-xl opacity-90">Airport Management System</p>
+            </div>
+            
+            <div>
+                <h3 class="text-2xl font-semibold mb-4">Welcome Back!</h3>
+                <p class="mb-6 opacity-90">Manage your flights, check-in, and track your journey all in one place.</p>
+                
+                <div class="feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Online Check-in</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>Mobile Boarding Pass</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-suitcase"></i>
+                    <span>Baggage Tracking</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-bell"></i>
+                    <span>Flight Notifications</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side - Login Form -->
+        <div class="login-right">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Sign In</h2>
+            <p class="text-gray-600 mb-8">Enter your credentials to access your account</p>
+            
+            <% if (error) { %>
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <span><%= error %></span>
+            </div>
+            <% } %>
+            
+            <% if (success) { %>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle mr-2"></i>
+                <span><%= success %></span>
+            </div>
+            <% } %>
+            
+            <form method="POST" action="/login">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" name="username" placeholder="Username or Email" required autofocus>
+                </div>
+                
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                
+                <div class="flex items-center justify-between mb-6">
+                    <label class="flex items-center">
+                        <input type="checkbox" name="remember" class="mr-2">
+                        <span class="text-sm text-gray-600">Remember me</span>
+                    </label>
+                    <a href="#" class="text-sm text-blue-600 hover:underline">Forgot password?</a>
+                </div>
+                
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Sign In
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">Don't have an account? 
+                    <a href="/register" class="text-blue-600 font-semibold hover:underline">Sign Up</a>
+                </p>
+            </div>
+            
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <p class="text-sm text-gray-500 text-center mb-3">Demo Accounts:</p>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="font-semibold text-gray-700">Admin</p>
+                        <p class="text-gray-600">admin / admin123</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="font-semibold text-gray-700">Passenger</p>
+                        <p class="text-gray-600">john.doe / passenger123</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

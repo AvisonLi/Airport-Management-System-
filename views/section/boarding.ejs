@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Boarding & Gates - Airport Management System' %></title>
+    <link rel="stylesheet" href="/css/airport-system.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>✈️ AMS</h2>
+            <span>AIRPORT MANAGEMENT SYSTEM</span>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item" data-section="passenger">
+                <a href="/dashboard">
+                    <i class="icon">👤</i>
+                    <span>Passenger Services</span>
+                </a>
+            </li>
+            <li class="nav-item active" data-section="boarding">
+                <a href="/section/boarding">
+                    <i class="icon">🚪</i>
+                    <span>Boarding & Gates</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="aircraft">
+                <a href="/section/aircraft">
+                    <i class="icon">🛩️</i>
+                    <span>Aircraft & Crew</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="ground">
+                <a href="/ground">
+                    <i class="icon">🚛</i>
+                    <span>Ground Services</span>
+                </a>
+            </li>
+            <li class="nav-item" data-section="crew">
+                <a href="/section/crew">
+                    <i class="icon">👷</i>
+                    <span>Crew Management</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="breadcrumb">
+                <span id="current-section">Boarding & Gate Operations</span>
+            </div>
+            <div class="user-info">
+                <div class="user-details">
+                    <span class="user-name"><%= user?.full_name || 'Admin User' %></span>
+                    <span class="user-role"><%= user?.role || 'admin' %></span>
+                </div>
+                <div class="avatar"><%= user?.avatar || '👨‍💼' %></div>
+                <a href="/logout" class="logout-btn">
+                    <span>🚪</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Boarding and Gate Operations Section -->
+        <section id="boarding-section" class="content-section active">
+            <h1>Boarding & Gate Operations</h1>
+            
+            <!-- Flight Selection Area -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>✈️ Flight Selection</h3>
+                    <div class="status-indicator active"></div>
+                </div>
+                <div class="card-content">
+                    <div class="flight-selector">
+                        <label for="flight-select">Select Flight:</label>
+                        <select id="flight-select" class="form-select">
+                            <option value="">-- Select Flight --</option>
+                            <% if (flights && flights.length > 0) { %>
+                                <% flights.forEach(flight => { %>
+                                    <option value="<%= flight.code %>"><%= flight.code %> (<%= flight.route %>)</option>
+                                <% }) %>
+                            <% } else { %>
+                                <option value="NF001">NF001 (HKG → TPE)</option>
+                                <option value="NF002">NF002 (HKG → ICN)</option>
+                                <option value="JL026">JL026 (HKG → HND)</option>
+                            <% } %>
+                        </select>
+                        
+                        <label for="gate-select-boarding">Or Select Gate:</label>
+                        <select id="gate-select-boarding" class="form-select">
+                            <option value="">-- Select Gate --</option>
+                            <% if (gates && gates.length > 0) { %>
+                                <% gates.forEach(gate => { %>
+                                    <option value="<%= gate %>">Gate <%= gate %></option>
+                                <% }) %>
+                            <% } else { %>
+                                <option value="A12">Gate A12</option>
+                                <option value="B08">Gate B08</option>
+                                <option value="7">Gate 7</option>
+                            <% } %>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boarding Pass Scanner Area -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>🎫 Boarding Pass Scanner</h3>
+                    <div class="status-indicator" id="scanner-status"></div>
+                </div>
+                <div class="card-content">
+                    <div class="scanner-section">
+                        <div class="scanner-input">
+                            <label for="boarding-pass-input">Scan/Enter Boarding Pass ID:</label>
+                            <div class="input-group">
+                                <input type="text" id="boarding-pass-input" placeholder="Enter boarding pass barcode">
+                                <button class="btn btn-primary" onclick="scanBoardingPass()">Scan</button>
+                            </div>
+                        </div>
+                        
+                        <div class="scan-result" id="scan-result" style="display: none;">
+                            <div class="passenger-info">
+                                <h5>Passenger Information:</h5>
+                                <div class="info-row">
+                                    <span class="info-label">Name:</span>
+                                    <span class="info-value" id="scanned-name"></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Seat:</span>
+                                    <span class="info-value" id="scanned-seat"></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Class:</span>
+                                    <span class="info-value" id="scanned-class"></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Status:</span>
+                                    <span class="info-value" id="scanned-status"></span>
+                                </div>
+                            </div>
+                            <div class="scan-actions">
+                                <button class="btn btn-success" onclick="confirmBoarding()">Confirm Boarding</button>
+                                <button class="btn btn-danger" onclick="denyBoarding()">Deny Boarding</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boarding Statistics Area -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>📊 Boarding Statistics</h3>
+                    <div class="status-indicator warning"></div>
+                </div>
+                <div class="card-content">
+                    <div class="flight-statistics" id="flight-statistics">
+                        <div class="flight-header">
+                            <h4 id="current-flight-display">Select a flight to view statistics</h4>
+                            <span id="current-gate-display"></span>
+                        </div>
+                        
+                        <div class="boarding-progress" id="boarding-progress-section" style="display: none;">
+                            <div class="passenger-counts">
+                                <div class="count-item business">
+                                    <span class="count-number" id="business-boarded">0</span>
+                                    <span class="count-total">/ <span id="business-total">0</span></span>
+                                    <span class="count-label">Business Class</span>
+                                    <div class="count-percentage" id="business-percentage">0%</div>
+                                </div>
+                                <div class="count-item premium">
+                                    <span class="count-number" id="premium-boarded">0</span>
+                                    <span class="count-total">/ <span id="premium-total">0</span></span>
+                                    <span class="count-label">Premium Economy</span>
+                                    <div class="count-percentage" id="premium-percentage">0%</div>
+                                </div>
+                                <div class="count-item economy">
+                                    <span class="count-number" id="economy-boarded">0</span>
+                                    <span class="count-total">/ <span id="economy-total">0</span></span>
+                                    <span class="count-label">Economy</span>
+                                    <div class="count-percentage" id="economy-percentage">0%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="overall-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="overall-progress-fill" style="width: 0%"></div>
+                                    <span class="progress-text" id="overall-progress-text">0% Boarded</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="boarding-actions" id="boarding-actions" style="display: none;">
+                            <button class="btn btn-success" onclick="startBoarding()">Start Boarding</button>
+                            <button class="btn btn-warning" onclick="holdBoarding()">Hold Boarding</button>
+                            <button class="btn btn-primary" onclick="finalizeBoarding()">Complete Boarding</button>
+                            <button class="btn btn-secondary" onclick="notifyPilot()">Notify Cockpit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Boarding Records -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>📋 Recent Boarding Activity</h3>
+                </div>
+                <div class="card-content">
+                    <div class="boarding-log" id="boarding-log">
+                        <div class="log-header">
+                            <span>Time</span>
+                            <span>Passenger</span>
+                            <span>Seat</span>
+                            <span>Class</span>
+                            <span>Status</span>
+                        </div>
+                        <div class="log-entries" id="log-entries">
+                            <!-- Boarding records will be dynamically added -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+<script src="/js/airport-system.js"></script></body>
+</html>

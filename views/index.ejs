@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Airport Management System' %></title>
+    <link rel="stylesheet" href="/css/airport-system.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>✈️ AMS</h2>
+            <span>AIRPORT MANAGEMENT SYSTEM</span>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item <%= activeSection === 'passenger' ? 'active' : '' %>" data-section="passenger">
+                <a href="/dashboard">
+                    <i class="icon">👤</i>
+                    <span>Passenger Services</span>
+                </a>
+            </li>
+            <li class="nav-item <%= activeSection === 'boarding' ? 'active' : '' %>" data-section="boarding">
+                <a href="/section/boarding">
+                    <i class="icon">🚪</i>
+                    <span>Boarding & Gates</span>
+                </a>
+            </li>
+            <li class="nav-item <%= activeSection === 'aircraft' ? 'active' : '' %>" data-section="aircraft">
+                <a href="/section/aircraft">
+                    <i class="icon">🛩️</i>
+                    <span>Aircraft & Crew</span>
+                </a>
+            </li>
+            <li class="nav-item <%= activeSection === 'ground' ? 'active' : '' %>" data-section="ground">
+                <a href="ground">
+                    <i class="icon">🚛</i>
+                    <span>Ground Services</span>
+                </a>
+            </li>
+            <li class="nav-item <%= activeSection === 'crew' ? 'active' : '' %>" data-section="crew">
+                <a href="/section/crew">
+                    <i class="icon">👷</i>
+                    <span>Crew Management</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="breadcrumb">
+                <span id="current-section"><%= currentSection || 'Passenger Services' %></span>
+            </div>
+            <div class="user-info">
+                <div class="user-details">
+                    <span class="user-name"><%= user?.full_name || 'Admin User' %></span>
+                    <span class="user-role"><%= user?.role || 'admin' %></span>
+                </div>
+                <div class="avatar"><%= user?.avatar || '👨‍💼' %></div>
+                <a href="/logout" class="logout-btn">
+                    <span>🚪</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Passenger Services Section -->
+        <section id="passenger-section" class="content-section <%= activeSection === 'passenger' || !activeSection ? 'active' : '' %>"> 
+            <h1>Passenger Service</h1>
+            
+            <!-- Online Check-In System -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>✈️ Online Check-In System</h3>
+                    <div class="status-indicator online"></div>
+                </div>
+                <div class="card-content">
+                    <!-- Step 1: Identity Verification -->
+                    <div id="checkin-step-1" class="checkin-step active">
+                        <h4>Step 1: Booking Validation</h4>
+                        <div class="input-group">
+                            <label>Passenger Name:</label>
+                            <input type="text" id="passenger-name" placeholder="Please Enter Your Full Name" value="<%= passengerData?.name || '' %>">
+                        </div>
+                        <div class="input-group">
+                            <label>Flight No:</label>
+                            <input type="text" id="flight-number" placeholder="Such as: NF001" value="<%= passengerData?.flight || '' %>">
+                        </div>
+                        <div class="input-group">
+                            <label>Booking Reference:</label>
+                            <input type="text" id="booking-reference" placeholder="6-digit booking reference number" value="<%= passengerData?.bookingRef || '' %>">
+                        </div>
+                        <div class="input-group">
+                            <label>Passport No.:</label>
+                            <input type="text" id="passport" placeholder="Your Passport Number" value="<%= passengerData?.passport || '' %>">
+                        </div>
+                        <button class="btn btn-primary" onclick="verifyPassenger()">Validate</button>
+                    </div>
+
+                    <!-- Step 2: Baggage Selection -->
+                    <div id="checkin-step-2" class="checkin-step">
+                        <h4>Step 2: Baggage Selection</h4>
+                        <div class="passenger-info">
+                            <div class="info-row">
+                                <span class="label">Passenger Name:</span>
+                                <span id="confirmed-name" class="value"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">Flight:</span>
+                                <span id="confirmed-flight" class="value"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">Booking Reference:</span>
+                                <span id="confirmed-booking" class="value"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">Passport No.:</span>
+                                <span id="confirmed-passport" class="value"></span>
+                            </div>
+                        </div>
+
+                        <div class="baggage-selection">
+                            <h5>Checked Baggage Selection</h5>
+                            <div class="baggage-options">
+                                <label class="baggage-option">
+                                    <input type="radio" name="baggage" value="none" checked>
+                                    <div class="option-content">
+                                        <div class="option-icon">🎒</div>
+                                        <div class="option-text">
+                                            <strong>Hand-Carry Only</strong>
+                                            <span>Free (7kg)</span>
+                                        </div>
+                                    </div>
+                                </label>
+                                
+                                <label class="baggage-option">
+                                    <input type="radio" name="baggage" value="checked">
+                                    <div class="option-content">
+                                        <div class="option-icon">🧳</div>
+                                        <div class="option-text">
+                                            <strong>Checked Baggage</strong>
+                                            <span>20kg Free</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div id="baggage-weight-section" class="baggage-weight" style="display: none;">
+                                <div class="input-group">
+                                    <label>Weight of Baggage (kg):</label>
+                                    <input type="number" id="baggage-weight" min="1" max="32" placeholder="Please enter weight in kg">
+                                </div>
+                                <div class="weight-warning" id="weight-warning" style="display: none;">
+                                    <span>⚠️ Overweight: $50/kg</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="step-actions">
+                            <button class="btn btn-secondary" onclick="goToStep(1)">Previous Step</button>
+                            <button class="btn btn-primary" onclick="goToStep(3)">Next Step</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Seat Selection -->
+                    <div id="checkin-step-3" class="checkin-step">
+                        <h4>Step 3: Seat Selection</h4>
+                        <div class="seat-map">
+                            <div class="aircraft-layout">
+                                <div class="seat-legend">
+                                    <div class="legend-item">
+                                        <div class="seat-demo available"></div>
+                                        <span>Seat Available</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="seat-demo occupied"></div>
+                                        <span>Occupied</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="seat-demo selected"></div>
+                                        <span>Your Seat</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="seat-demo premium"></div>
+                                        <span>Premium Seat (+$200)</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="seat-rows">
+                                    <!-- Business Class Seats -->
+                                    <div class="cabin-section">
+                                        <h6>Business Class (+$800)</h6>
+                                        <div class="seat-grid business" id="business-seats"></div>
+                                    </div>
+
+                                    <!-- Premium Economy Class Seats -->
+                                    <div class="cabin-section">
+                                        <h6>Premium Economy Class (+$200)</h6>
+                                        <div class="seat-grid premium" id="premium-economy-seats"></div>
+                                    </div>
+                                    
+                                    <!-- Economy Class Seats -->
+                                    <div class="cabin-section">
+                                        <h6>Economy Class</h6>
+                                        <div class="seat-grid" id="economy-seats"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="selected-seat-info">
+                                <div class="info-box">
+                                    <h6>Selected Seat</h6>
+                                    <div id="selected-seat-display" class="seat-display">
+                                        <span>No seat selected</span>
+                                    </div>
+                                    <div id="seat-fee" class="seat-fee" style="display: none;">
+                                        Additional Fee: $<span id="seat-fee-amount">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="step-actions">
+                            <button class="btn btn-secondary" onclick="goToStep(2)">Previous Step</button>
+                            <button class="btn btn-success" onclick="completeCheckin()" id="complete-checkin-btn" disabled>Complete Check-In</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Boarding Pass -->
+                    <div id="checkin-step-4" class="checkin-step">
+                        <h4>Check-In Complete</h4>
+                        <div class="boarding-pass">
+                            <div class="boarding-pass-header">
+                                <div class="airline-logo">
+                                    <h3>🛫 <%= airlineName || 'HKAP Airlines' %></h3>
+                                </div>
+                                <div class="pass-type">Boarding Pass</div>
+                            </div>
+                            
+                            <div class="boarding-pass-content">
+                                <div class="passenger-details">
+                                    <div class="detail-row">
+                                        <span class="label">Passenger Name</span>
+                                        <span id="bp-passenger-name" class="value"></span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="label">Passport No.</span>
+                                        <span id="bp-passport" class="value"></span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="label">Flight</span>
+                                        <span id="bp-flight" class="value"></span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="label">Date</span>
+                                        <span id="bp-date" class="value"></span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="label">Departure Time</span>
+                                        <span id="bp-time" class="value">14:30</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="seat-gate-info">
+                                    <div class="info-block">
+                                        <div class="info-label">Seat</div>
+                                        <div id="bp-seat" class="info-value large"></div>
+                                    </div>
+                                    <div class="info-block">
+                                        <div class="info-label">Gate</div>
+                                        <div id="bp-gate" class="info-value large">A12</div>
+                                    </div>
+                                    <div class="info-block">
+                                        <div class="info-label">Boarding Time</div>
+                                        <div id="bp-boarding-time" class="info-value">14:00</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="baggage-info" id="baggage-info-section" style="display: none;">
+                                    <h6>Checked Baggage Information</h6>
+                                    <div class="baggage-tag">
+                                        <div class="tag-number">
+                                            <strong id="baggage-tag-number"></strong>
+                                        </div>
+                                        <div class="tag-details">
+                                            <div>Weight: <span id="baggage-weight-display"></span> kg</div>
+                                            <div>Destination: TPE</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="barcode-section">
+                                    <div class="barcode-lines">
+                                        <div class="line"></div>
+                                        <div class="line thick"></div>
+                                        <div class="line"></div>
+                                        <div class="line thick"></div>
+                                        <div class="line"></div>
+                                        <div class="line"></div>
+                                        <div class="line thick"></div>
+                                        <div class="line"></div>
+                                        <div class="line thick"></div>
+                                        <div class="line"></div>
+                                    </div>
+                                    <div class="barcode-number" id="bp-barcode"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="boarding-pass-footer">
+                                <div class="important-info">
+                                    <p>🕐 Please arrive at gate 30 minutes before departure</p>
+                                    <p>📱 Please present this boarding pass and valid ID</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="completion-actions">
+                            <button class="btn btn-primary" onclick="printBoardingPass()">Print Boarding Pass</button>
+                            <button class="btn btn-secondary" onclick="emailBoardingPass()">Send to Email</button>
+                            <button class="btn btn-success" onclick="downloadBoardingPass()">Download PDF</button>
+                            <button class="btn btn-outline" onclick="startNewCheckin()">New Check-In</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Boarding and Gate Operations Section -->
+        <section id="boarding-section" class="content-section <%= activeSection === 'boarding' ? 'active' : '' %>">
+            <h1>Boarding & Gate Operations</h1>
+            
+            <!-- Flight Selection Area -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>✈️ Flight Selection</h3>
+                    <div class="status-indicator active"></div>
+                </div>
+                <div class="card-content">
+                    <div class="flight-selector">
+                        <label for="flight-select">Select Flight:</label>
+                        <select id="flight-select" class="form-select">
+                            <option value="">-- Select Flight --</option>
+                            <% if (flights && flights.length > 0) { %>
+                                <% flights.forEach(flight => { %>
+                                    <option value="<%= flight.code %>"><%= flight.code %> (<%= flight.route %>)</option>
+                                <% }) %>
+                            <% } else { %>
+                                <option value="NF001">NF001 (HKG → TPE)</option>
+                                <option value="NF002">NF002 (HKG → ICN)</option>
+                                <option value="JL026">JL026 (HKG → HND)</option>
+                            <% } %>
+                        </select>
+                        
+                        <label for="gate-select-boarding">Or Select Gate:</label>
+                        <select id="gate-select-boarding" class="form-select">
+                            <option value="">-- Select Gate --</option>
+                            <% if (gates && gates.length > 0) { %>
+                                <% gates.forEach(gate => { %>
+                                    <option value="<%= gate %>">Gate <%= gate %></option>
+                                <% }) %>
+                            <% } else { %>
+                                <option value="A12">Gate A12</option>
+                                <option value="B08">Gate B08</option>
+                                <option value="7">Gate 7</option>
+                            <% } %>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boarding Pass Scanner Area -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>🎫 Boarding Pass Scanner</h3>
+                    <div class="status-indicator" id="scanner-status"></div>
+                </div>
+                <div class="card-content">
+                    <div class="scanner-section">
+                        <div class="scanner-input">
+                            <label for="boarding-pass-input">Scan/Enter Boarding Pass ID:</label>
+                            <div class="input-group">
+                                <input type="text" id="boarding-pass-input" placeholder="Enter boarding pass barcode">
+                                <button class="btn btn-primary" onclick="scanBoardingPass()">Scan</button>
+                            </div>
+                        </div>
+                        
+                        <div class="scan-result" id="scan-result" style="display: none;">
+                            <div class="passenger-info">
+                                <h5>Passenger Information:</h5>
+                                <div class="info-row">
+                                    <span class="info-label">Name:</span>
+                                    <span class="info-value" id="scanned-name"></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Seat:</span>
+                                    <span class="info-value" id="scanned-seat"></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Class:</span>
+                                    <span class="info-value" id="scanned-class"></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Status:</span>
+                                    <span class="info-value" id="scanned-status"></span>
+                                </div>
+                            </div>
+                            <div class="scan-actions">
+                                <button class="btn btn-success" onclick="confirmBoarding()">Confirm Boarding</button>
+                                <button class="btn btn-danger" onclick="denyBoarding()">Deny Boarding</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boarding Statistics Area -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>📊 Boarding Statistics</h3>
+                    <div class="status-indicator warning"></div>
+                </div>
+                <div class="card-content">
+                    <div class="flight-statistics" id="flight-statistics">
+                        <div class="flight-header">
+                            <h4 id="current-flight-display">Select a flight to view statistics</h4>
+                            <span id="current-gate-display"></span>
+                        </div>
+                        
+                        <div class="boarding-progress" id="boarding-progress-section" style="display: none;">
+                            <div class="passenger-counts">
+                                <div class="count-item business">
+                                    <span class="count-number" id="business-boarded">0</span>
+                                    <span class="count-total">/ <span id="business-total">0</span></span>
+                                    <span class="count-label">Business Class</span>
+                                    <div class="count-percentage" id="business-percentage">0%</div>
+                                </div>
+                                <div class="count-item premium">
+                                    <span class="count-number" id="premium-boarded">0</span>
+                                    <span class="count-total">/ <span id="premium-total">0</span></span>
+                                    <span class="count-label">Premium Economy</span>
+                                    <div class="count-percentage" id="premium-percentage">0%</div>
+                                </div>
+                                <div class="count-item economy">
+                                    <span class="count-number" id="economy-boarded">0</span>
+                                    <span class="count-total">/ <span id="economy-total">0</span></span>
+                                    <span class="count-label">Economy</span>
+                                    <div class="count-percentage" id="economy-percentage">0%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="overall-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="overall-progress-fill" style="width: 0%"></div>
+                                    <span class="progress-text" id="overall-progress-text">0% Boarded</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="boarding-actions" id="boarding-actions" style="display: none;">
+                            <button class="btn btn-success" onclick="startBoarding()">Start Boarding</button>
+                            <button class="btn btn-warning" onclick="holdBoarding()">Hold Boarding</button>
+                            <button class="btn btn-primary" onclick="finalizeBoarding()">Complete Boarding</button>
+                            <button class="btn btn-secondary" onclick="notifyPilot()">Notify Cockpit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Boarding Records -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>📋 Recent Boarding Activity</h3>
+                </div>
+                <div class="card-content">
+                    <div class="boarding-log" id="boarding-log">
+                        <div class="log-header">
+                            <span>Time</span>
+                            <span>Passenger</span>
+                            <span>Seat</span>
+                            <span>Class</span>
+                            <span>Status</span>
+                        </div>
+                        <div class="log-entries" id="log-entries">
+                            <!-- Boarding records will be dynamically added -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Aircraft and Crew Management Section -->
+        <section id="aircraft-section" class="content-section <%= activeSection === 'aircraft' ? 'active' : '' %>">
+            <h1>Aircraft & Crew Management</h1>
+            
+            <!-- Aircraft Matching System -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>🛩️ Aircraft Matching System</h3>
+                    <div class="status-indicator active"></div>
+                </div>
+                <div class="card-content">
+                    <div class="aircraft-requirements">
+                        <h4>Aircraft Assignment</h4>
+                        <div class="requirement-grid">
+                            <div class="requirement-item">
+                                <span class="requirement-label">Select Flight:</span>
+                                <select id="aircraft-flight-select" class="form-select">
+                                    <option value="">-- Select Flight --</option>
+                                    <% if (flights && flights.length > 0) { %>
+                                        <% flights.forEach(flight => { %>
+                                            <option value="<%= flight.code %>"><%= flight.code %> - <%= flight.route %></option>
+                                        <% }) %>
+                                    <% } %>
+                                </select>
+                            </div>
+                            <div class="requirement-item">
+                                <span class="requirement-label">Aircraft Type Filter:</span>
+                                <select id="aircraft-type-filter" class="form-select">
+                                    <option value="">All Types</option>
+                                    <option value="Boeing">Boeing</option>
+                                    <option value="Airbus">Airbus</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="aircraft-list" id="aircraft-list">
+                            <h5>Available Aircraft</h5>
+                            <% if (aircraftList && aircraftList.length > 0) { %>
+                                <% aircraftList.forEach(aircraft => { %>
+                                    <div class="aircraft-item <%= aircraft.status %>" data-aircraft-id="<%= aircraft.id %>">
+                                        <span class="aircraft-id"><%= aircraft.id %></span>
+                                        <span class="aircraft-type"><%= aircraft.type %></span>
+                                        <span class="aircraft-status"><%= aircraft.statusIcon %> <%= aircraft.statusText %></span>
+                                        <% if (aircraft.status === 'available') { %>
+                                            <button class="btn btn-sm btn-primary assign-aircraft-btn" 
+                                                    data-aircraft-id="<%= aircraft.id %>"
+                                                    onclick="assignAircraft('<%= aircraft.id %>')">
+                                                Assign
+                                            </button>
+                                        <% } else if (aircraft.status === 'assigned') { %>
+                                            <button class="btn btn-sm btn-warning swap-aircraft-btn" 
+                                                    data-aircraft-id="<%= aircraft.id %>"
+                                                    onclick="openSwapModal('<%= aircraft.id %>')">
+                                                Swap Aircraft
+                                            </button>
+                                        <% } else { %>
+                                            <button class="btn btn-sm btn-secondary" disabled>
+                                                Unavailable
+                                            </button>
+                                        <% } %>
+                                    </div>
+                                <% }) %>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aircraft Swapping System -->
+            <div class="service-card" id="swap-card" style="display: none;">
+                <div class="card-header">
+                    <h3>🔄 Aircraft Swapping System</h3>
+                    <div class="status-indicator warning"></div>
+                </div>
+                <div class="card-content">
+                    <div class="swap-interface">
+                        <div class="swap-section">
+                            <h5>Current Assignment</h5>
+                            <div class="aircraft-card current">
+                                <div class="aircraft-info">
+                                    <span class="aircraft-id" id="current-aircraft-id">-</span>
+                                    <span class="aircraft-details" id="current-aircraft-details">-</span>
+                                </div>
+                                <span class="flight-info" id="current-flight-info">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="swap-arrow">↔️</div>
+                        
+                        <div class="swap-section">
+                            <h5>Replacement Aircraft</h5>
+                            <select id="replacement-aircraft-select" class="form-select">
+                                <option value="">-- Select Replacement --</option>
+                            </select>
+                            <div class="aircraft-card replacement" id="replacement-aircraft-card" style="display: none;">
+                                <div class="aircraft-info">
+                                    <span class="aircraft-id" id="replacement-aircraft-id">-</span>
+                                    <span class="aircraft-details" id="replacement-aircraft-details">-</span>
+                                </div>
+                                <span class="flight-info">Ready for Assignment</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="swap-actions">
+                        <button class="btn btn-warning" onclick="confirmSwap()" id="confirm-swap-btn" disabled>Confirm Swap</button>
+                        <button class="btn btn-secondary" onclick="cancelSwap()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maintenance Tracking System -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>🔧 Maintenance Tracking System</h3>
+                    <div class="status-indicator online"></div>
+                </div>
+                <div class="card-content">
+                    <div class="maintenance-dashboard">
+                        <div class="maintenance-stats">
+                            <div class="stat-card">
+                                <span class="stat-number" id="maintenance-count"><%= maintenanceStats?.inMaintenance || 0 %></span>
+                                <span class="stat-label">In Maintenance</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-number" id="available-count"><%= maintenanceStats?.available || 0 %></span>
+                                <span class="stat-label">Available</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-number" id="service-count"><%= maintenanceStats?.inService || 0 %></span>
+                                <span class="stat-label">In Service</span>
+                            </div>
+                        </div>
+                        
+                        <div class="maintenance-list" id="maintenance-list">
+                            <!-- Maintenance items will be loaded dynamically -->
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="refreshMaintenanceList()">🔄 Refresh Status</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crew Assignment System -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>👥 Crew Assignment System</h3>
+                    <div class="status-indicator active"></div>
+                </div>
+                <div class="card-content">
+                    <div class="crew-assignment">
+                        <div class="assignment-form">
+                            <h5>Assign Crew to Task</h5>
+                            <div class="form-grid">
+                                <div class="input-group">
+                                    <label for="crew-type-select">Crew Type:</label>
+                                    <select id="crew-type-select" class="form-select" onchange="filterCrewByType()">
+                                        <option value="">All Types</option>
+                                        <option value="cleaning">Cleaning Crew</option>
+                                        <option value="fueling">Fueling Crew</option>
+                                        <option value="catering">Catering Crew</option>
+                                        <option value="maintenance">Maintenance Crew</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="crew-member-select">Crew Member:</label>
+                                    <select id="crew-member-select" class="form-select">
+                                        <option value="">-- Select Crew Member --</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="task-aircraft-select">Aircraft:</label>
+                                    <select id="task-aircraft-select" class="form-select">
+                                        <option value="">-- Select Aircraft --</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="task-description">Task:</label>
+                                    <input type="text" id="task-description" placeholder="e.g., Pre-flight cleaning">
+                                </div>
+                            </div>
+                            <button class="btn btn-success" onclick="assignCrewToTask()">Assign Crew</button>
+                        </div>
+                        
+                        <div class="crew-status-grid" id="crew-status-grid">
+                            <!-- Crew status will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ground Services Section -->
+        <section id="ground-section" class="content-section <%= activeSection === 'ground' ? 'active' : '' %>">
+            <h1>Ground Services & Gate Management</h1>
+            
+            <!-- Turnaround Services Coordination -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>🚛 Turnaround Services Coordination</h3>
+                    <div class="status-indicator active"></div>
+                </div>
+                <div class="card-content">
+                    <div class="turnaround-coordinator">
+                        <!-- Aircraft and Team Selection -->
+                        <div class="selection-panel">
+                            <div class="select-group">
+                                <label for="aircraft-select">Select Aircraft:</label>
+                                <select id="aircraft-select" class="form-select">
+                                    <option value="">-- Choose Aircraft --</option>
+                                    <option value="NF001">NF001 - Boeing 737</option>
+                                    <option value="NF002">NF002 - Airbus A320</option>
+                                    <option value="NF003">NF003 - Boeing 787</option>
+                                    <option value="NF004">NF004 - Airbus A350</option>
+                                    <option value="NF005">NF005 - Boeing 777</option>
+                                </select>
+                            </div>
+                            
+                            <div class="select-group">
+                                <label for="service-team-select">Assign Service Team:</label>
+                                <select id="service-team-select" class="form-select">
+                                    <option value="">-- Choose Team --</option>
+                                    <option value="team-alpha">Team Alpha (Available)</option>
+                                    <option value="team-beta">Team Beta (Available)</option>
+                                    <option value="team-gamma">Team Gamma (Available)</option>
+                                    <option value="team-delta">Team Delta (Available)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Flight Information Display -->
+                        <div class="flight-info-header" id="flight-info-display" style="display: none;">
+                            <div class="info-row">
+                                <div class="info-item">
+                                    <span class="info-label">Flight:</span>
+                                    <span id="flight-title" class="info-value">NF001 - Boeing 737</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Scheduled Departure:</span>
+                                    <span id="scheduled-departure" class="info-value">14:30</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Scheduled Arrival:</span>
+                                    <span id="scheduled-arrival" class="info-value">16:45</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Service Timeline -->
+                        <div class="service-timeline" id="service-timeline" style="display: none;">
+                            <!-- Timeline items will be dynamically generated via JavaScript -->
+                        </div>
+                        
+                        <!-- Delay Controls -->
+                        <div class="delay-controls" id="delay-controls" style="display: none;">
+                            <h5>Schedule Adjustment</h5>
+                            <div class="delay-buttons">
+                                <button class="btn btn-sm btn-success delay-btn" data-delay="-15" onclick="applyDelay(-15)">-15 min</button>
+                                <button class="btn btn-sm btn-success delay-btn" data-delay="-10" onclick="applyDelay(-10)">-10 min</button>
+                                <button class="btn btn-sm btn-success delay-btn" data-delay="-5" onclick="applyDelay(-5)">-5 min</button>
+                                <button class="btn btn-sm btn-secondary delay-btn" data-delay="0" onclick="resetSchedule()">Reset</button>
+                                <button class="btn btn-sm btn-warning delay-btn" data-delay="5" onclick="applyDelay(5)">+5 min</button>
+                                <button class="btn btn-sm btn-warning delay-btn" data-delay="10" onclick="applyDelay(10)">+10 min</button>
+                                <button class="btn btn-sm btn-danger delay-btn" data-delay="15" onclick="applyDelay(15)">+15 min</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gate Preparation -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>🚪 Gate Preparation</h3>
+                    <div class="status-indicator warning"></div>
+                </div>
+                <div class="card-content">
+                    <div class="gate-preparation">
+                        <!-- Gate Selection -->
+                        <div class="selection-panel">
+                            <div class="select-group">
+                                <label for="gate-select">Select Gate:</label>
+                                <select id="gate-select" class="form-select">
+                                    <option value="">-- Choose Gate --</option>
+                                    <% ['A', 'B', 'C'].forEach(terminal => { %>
+                                        <% for(let i = 1; i <= 5; i++) { %>
+                                            <option value="<%= terminal %><%= i %>">Gate <%= terminal %><%= i %></option>
+                                        <% } %>
+                                    <% }) %>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="gate-info" id="gate-info-display" style="display: none;">
+                            <h4 id="gate-title">Gate A2 - Flight NF001</h4>
+                            <span class="gate-status-text" id="gate-status">Preparing for Departure</span>
+                        </div>
+                        
+                        <div class="preparation-checklist" id="gate-checklist" style="display: none;">
+                            <div class="checklist-category">
+                                <h5>Pre-Flight Preparations</h5>
+                                <div class="checklist-items">
+                                    <div class="checklist-item completed">
+                                        <span class="checkbox">✅</span>
+                                        <span class="item-text">Fueling Aircraft</span>
+                                        <span class="item-time">Completed 10:30</span>
+                                    </div>
+                                    
+                                    <div class="checklist-item completed">
+                                        <span class="checkbox">✅</span>
+                                        <span class="item-text">Packing Baggage</span>
+                                        <span class="item-time">Completed 10:45</span>
+                                    </div>
+                                    
+                                    <div class="checklist-item active">
+                                        <span class="checkbox">🔄</span>
+                                        <span class="item-text">Update Database with Gate Status</span>
+                                        <span class="item-time">In Progress</span>
+                                    </div>
+                                    
+                                    <div class="checklist-item pending">
+                                        <span class="checkbox">⏳</span>
+                                        <span class="item-text">Check Aircraft Type and ID</span>
+                                        <span class="item-time">Pending</span>
+                                    </div>
+                                    
+                                    <div class="checklist-item pending">
+                                        <span class="checkbox">⏳</span>
+                                        <span class="item-text">Baggage Send to Aircraft</span>
+                                        <span class="item-time">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="gate-actions" id="gate-actions" style="display: none;">
+                            <button class="btn btn-success">Mark Complete</button>
+                            <button class="btn btn-warning">Report Issue</button>
+                            <button class="btn btn-primary">Update Status</button>
+                            <button class="btn btn-secondary">Schedule Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resource Allocation -->
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>👥 Resource Allocation</h3>
+                    <div class="status-indicator online"></div>
+                </div>
+                <div class="card-content">
+                    <div class="resource-allocation">
+                        <div class="crew-grid">
+                            <%
+                            const crewCategories = [
+                                { name: 'Cleaning Crew', prefix: 'CC', members: [
+                                    { id: '001', status: 'Available', statusClass: 'available' },
+                                    { id: '002', status: 'Gate A3', statusClass: 'busy' }
+                                ]},
+                                { name: 'Fueling Crew', prefix: 'FC', members: [
+                                    { id: '001', status: 'Gate A2', statusClass: 'busy' },
+                                    { id: '002', status: 'Available', statusClass: 'available' }
+                                ]},
+                                { name: 'Catering Crew', prefix: 'CT', members: [
+                                    { id: '001', status: 'Available', statusClass: 'available' },
+                                    { id: '002', status: 'Available', statusClass: 'available' }
+                                ]},
+                                { name: 'Maintenance Crew', prefix: 'MC', members: [
+                                    { id: '001', status: 'Hangar B', statusClass: 'busy' },
+                                    { id: '002', status: 'Available', statusClass: 'available' }
+                                ]}
+                            ];
+                            %>
+                            
+                            <% crewCategories.forEach(category => { %>
+                                <div class="crew-category">
+                                    <h5><%= category.name %></h5>
+                                    <div class="crew-members">
+                                        <% category.members.forEach(member => { %>
+                                            <div class="crew-member <%= member.statusClass %>">
+                                                <span class="member-id"><%= category.prefix %><%= member.id %></span>
+                                                <span class="member-status"><%= member.status %></span>
+                                            </div>
+                                        <% }) %>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                        
+                        <div class="allocation-actions">
+                            <button class="btn btn-primary">Auto Assign</button>
+                            <button class="btn btn-secondary">Manual Assign</button>
+                            <button class="btn btn-warning">Handle Conflict</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/js/airport-system.js"></script>
+</body>
+</html>

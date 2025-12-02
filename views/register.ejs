@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .register-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1000px;
+            width: 100%;
+            display: flex;
+            overflow: hidden;
+        }
+        .register-left {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 60px 40px;
+            color: white;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .register-right {
+            padding: 60px 40px;
+            flex: 1.5;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #374151;
+        }
+        .btn-register {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        .alert {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .alert-error {
+            background-color: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+        .alert-success {
+            background-color: #d1fae5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .register-card {
+                flex-direction: column;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .register-left {
+                padding: 40px 30px;
+            }
+            .register-right {
+                padding: 40px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-card">
+        <!-- Left Side - Branding -->
+        <div class="register-left">
+            <div class="mb-8">
+                <i class="fas fa-plane-departure text-6xl mb-4"></i>
+                <h1 class="text-4xl font-bold mb-2">Join HKAP Airlines</h1>
+                <p class="text-xl opacity-90">Create Your Passenger Account</p>
+            </div>
+            
+            <div>
+                <h3 class="text-2xl font-semibold mb-4">Why Register?</h3>
+                <ul class="space-y-3">
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-400 mr-3 mt-1"></i>
+                        <span>Fast online check-in 24 hours before departure</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-400 mr-3 mt-1"></i>
+                        <span>Access mobile boarding passes instantly</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-400 mr-3 mt-1"></i>
+                        <span>Track your baggage in real-time</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-400 mr-3 mt-1"></i>
+                        <span>Manage all bookings in one dashboard</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-400 mr-3 mt-1"></i>
+                        <span>Receive flight status notifications</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-400 mr-3 mt-1"></i>
+                        <span>Earn frequent flyer miles</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Right Side - Registration Form -->
+        <div class="register-right">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Create Account</h2>
+            <p class="text-gray-600 mb-6">Fill in your details to get started</p>
+            
+            <% if (error) { %>
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <span><%= error %></span>
+            </div>
+            <% } %>
+            
+            <% if (success) { %>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle mr-2"></i>
+                <span><%= success %></span>
+            </div>
+            <% } %>
+            
+            <form method="POST" action="/register" id="registerForm">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">Account Information</h3>
+                
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="username">Username *</label>
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" name="username" placeholder="Choose a username" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="email">Email Address *</label>
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" name="email" placeholder="your.email@example.com" required>
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="password">Password *</label>
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" name="password" placeholder="Min. 8 characters" required minlength="8">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="confirm_password">Confirm Password *</label>
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter password" required>
+                    </div>
+                </div>
+                
+                <h3 class="text-lg font-semibold text-gray-700 mb-4 mt-6">Personal Information</h3>
+                
+                <div class="input-group">
+                    <label for="full_name">Full Name *</label>
+                    <i class="fas fa-id-card"></i>
+                    <input type="text" id="full_name" name="full_name" placeholder="As per passport" required>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="passport_number">Passport Number *</label>
+                        <i class="fas fa-passport"></i>
+                        <input type="text" id="passport_number" name="passport_number" placeholder="e.g., A12345678" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="phone_number">Phone Number</label>
+                        <i class="fas fa-phone"></i>
+                        <input type="tel" id="phone_number" name="phone_number" placeholder="+852 1234 5678">
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="date_of_birth">Date of Birth</label>
+                        <i class="fas fa-calendar"></i>
+                        <input type="date" id="date_of_birth" name="date_of_birth">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="nationality">Nationality</label>
+                        <i class="fas fa-flag"></i>
+                        <select id="nationality" name="nationality">
+                            <option value="HKG">Hong Kong</option>
+                            <option value="USA">United States</option>
+                            <option value="GBR">United Kingdom</option>
+                            <option value="CHN">China</option>
+                            <option value="JPN">Japan</option>
+                            <option value="KOR">South Korea</option>
+                            <option value="TWN">Taiwan</option>
+                            <option value="SGP">Singapore</option>
+                            <option value="AUS">Australia</option>
+                            <option value="CAN">Canada</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <label class="flex items-start">
+                        <input type="checkbox" required class="mr-2 mt-1">
+                        <span class="text-sm text-gray-600">
+                            I agree to the <a href="#" class="text-blue-600 hover:underline">Terms & Conditions</a> 
+                            and <a href="#" class="text-blue-600 hover:underline">Privacy Policy</a>
+                        </span>
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn-register mt-6">
+                    <i class="fas fa-user-plus mr-2"></i>Create Account
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">Already have an account? 
+                    <a href="/login" class="text-blue-600 font-semibold hover:underline">Sign In</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+                return false;
+            }
+            
+            if (password.length < 8) {
+                e.preventDefault();
+                alert('Password must be at least 8 characters long!');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>
