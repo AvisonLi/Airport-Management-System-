@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %></title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/airport-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 </head>
 <body>
 
@@ -41,17 +45,17 @@
             <h2><i class="fas fa-search"></i> Find Your Booking</h2>
             <p class="text-muted mb-4">Please enter your booking reference and full name to begin check-in</p>
 
-            <div class="alert-checkin info">
-                <i class="fas fa-info-circle"></i>
+            <div class="alert alert-info d-flex align-items-center" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
                 <div>
-                    <strong>Check-in opens 24 hours before departure</strong><br>
+                    <strong>Check-in opens 24 hours before departure (Optional earlier is acceptable)</strong><br>
                     Please have your booking reference and passport ready
                 </div>
             </div>
 
             <form id="booking-form" class="passenger-form-grid">
                 <div class="form-group">
-                    <label for="booking-ref">
+                    <label for="booking-ref" class="form-label">
                         <i class="fas fa-ticket-alt"></i> Booking Reference
                     </label>
                     <input type="text" 
@@ -63,7 +67,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="full-name">
+                    <label for="full-name" class="form-label">
                         <i class="fas fa-user"></i> Full Name
                     </label>
                     <input type="text" 
@@ -75,11 +79,11 @@
                 </div>
             </form>
 
-            <div class="action-buttons">
-                <button type="button" class="btn-back" onclick="window.location.href='/passenger'">
+            <div class="action-buttons d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='/passenger'">
                     <i class="fas fa-arrow-left"></i> Back to Home
                 </button>
-                <button type="button" class="btn-next" onclick="verifyBooking()">
+                <button type="button" class="btn btn-primary" onclick="verifyBooking()">
                     Continue <i class="fas fa-arrow-right"></i>
                 </button>
             </div>
@@ -140,7 +144,7 @@
 
             <form id="passenger-info-form" class="passenger-form-grid">
                 <div class="form-group">
-                    <label for="first-name">
+                    <label for="first-name" class="form-label">
                         <i class="fas fa-user"></i> First Name
                     </label>
                     <input type="text" 
@@ -151,7 +155,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="full-name-confirm">
+                    <label for="full-name-confirm" class="form-label">
                         <i class="fas fa-user"></i> Full Name
                     </label>
                     <input type="text" 
@@ -162,7 +166,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="passport">
+                    <label for="passport" class="form-label">
                         <i class="fas fa-passport"></i> Passport Number
                     </label>
                     <input type="text" 
@@ -174,10 +178,10 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="nationality">
+                    <label for="nationality" class="form-label">
                         <i class="fas fa-flag"></i> Nationality
                     </label>
-                    <select id="nationality" name="nationality" class="form-control" required>
+                    <select id="nationality" name="nationality" class="form-select" required>
                         <option value="">Select nationality</option>
                         <option value="TW">Taiwan</option>
                         <option value="US">United States</option>
@@ -189,7 +193,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="dob">
+                    <label for="dob" class="form-label">
                         <i class="fas fa-birthday-cake"></i> Date of Birth
                     </label>
                     <input type="date" 
@@ -200,7 +204,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="email">
+                    <label for="email" class="form-label">
                         <i class="fas fa-envelope"></i> Email
                     </label>
                     <input type="email" 
@@ -212,11 +216,11 @@
                 </div>
             </form>
 
-            <div class="action-buttons">
-                <button type="button" class="btn-back" onclick="previousStep(1)">
+            <div class="action-buttons d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-outline-secondary" onclick="previousStep(1)">
                     <i class="fas fa-arrow-left"></i> Back
                 </button>
-                <button type="button" class="btn-next" onclick="nextStep(3)">
+                <button type="button" class="btn btn-primary" onclick="nextStep(3)">
                     Continue <i class="fas fa-arrow-right"></i>
                 </button>
             </div>
@@ -318,46 +322,60 @@
                 </div>
 
                 <!-- Selected Seat Info -->
-                <div class="seat-selected-info" id="seat-selected-info" style="display: none;">
-                    <h4><i class="fas fa-check-circle"></i> Seat Selected</h4>
-                    <p><strong>Seat Number:</strong> <span id="selected-seat-number"></span></p>
-                    <p><strong>Additional Fee:</strong> $<span id="selected-seat-fee">0</span></p>
+                <div class="seat-selected-info card mt-4 p-3" id="seat-selected-info" style="display: none;">
+                    <h4 class="card-title"><i class="fas fa-check-circle text-success"></i> Seat Selected</h4>
+                    <div class="card-body p-0">
+                        <p class="mb-2"><strong>Seat Number:</strong> <span id="selected-seat-number" class="badge bg-primary"></span></p>
+                        <p class="mb-0"><strong>Additional Fee:</strong> $<span id="selected-seat-fee">0</span></p>
+                    </div>
                 </div>
             </div>
 
             <!-- Baggage Options -->
             <h3 class="mt-5 mb-3"><i class="fas fa-suitcase"></i> Add Baggage (Optional)</h3>
-            <div class="baggage-options">
-                <div class="baggage-option" onclick="selectBaggage('none')">
-                    <input type="radio" name="baggage" value="none" checked>
-                    <div class="baggage-icon"><i class="fas fa-ban"></i></div>
-                    <div class="baggage-title">No Extra Baggage</div>
-                    <div class="baggage-description">Carry-on only (7kg)</div>
-                    <div class="baggage-price">$0</div>
+            <div class="baggage-options row g-3">
+                <div class="col-md-4">
+                    <div class="baggage-option card h-100" onclick="selectBaggage('none')">
+                        <div class="card-body text-center">
+                            <input type="radio" name="baggage" value="none" class="form-check-input position-absolute top-0 end-0 m-2" checked>
+                            <div class="baggage-icon mb-3"><i class="fas fa-ban fa-2x text-muted"></i></div>
+                            <div class="baggage-title h5 mb-2">No Extra Baggage</div>
+                            <div class="baggage-description text-muted mb-3">Carry-on only (7kg)</div>
+                            <div class="baggage-price h4 text-success">$0</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="baggage-option" onclick="selectBaggage('20kg')">
-                    <input type="radio" name="baggage" value="20kg">
-                    <div class="baggage-icon"><i class="fas fa-suitcase"></i></div>
-                    <div class="baggage-title">20kg Checked Bag</div>
-                    <div class="baggage-description">Standard checked baggage</div>
-                    <div class="baggage-price">$30</div>
+                <div class="col-md-4">
+                    <div class="baggage-option card h-100" onclick="selectBaggage('20kg')">
+                        <div class="card-body text-center">
+                            <input type="radio" name="baggage" value="20kg" class="form-check-input position-absolute top-0 end-0 m-2">
+                            <div class="baggage-icon mb-3"><i class="fas fa-suitcase fa-2x text-primary"></i></div>
+                            <div class="baggage-title h5 mb-2">20kg Checked Bag</div>
+                            <div class="baggage-description text-muted mb-3">Standard checked baggage</div>
+                            <div class="baggage-price h4 text-primary">$30</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="baggage-option" onclick="selectBaggage('32kg')">
-                    <input type="radio" name="baggage" value="32kg">
-                    <div class="baggage-icon"><i class="fas fa-suitcase-rolling"></i></div>
-                    <div class="baggage-title">32kg Checked Bag</div>
-                    <div class="baggage-description">Extra baggage allowance</div>
-                    <div class="baggage-price">$50</div>
+                <div class="col-md-4">
+                    <div class="baggage-option card h-100" onclick="selectBaggage('32kg')">
+                        <div class="card-body text-center">
+                            <input type="radio" name="baggage" value="32kg" class="form-check-input position-absolute top-0 end-0 m-2">
+                            <div class="baggage-icon mb-3"><i class="fas fa-suitcase-rolling fa-2x text-warning"></i></div>
+                            <div class="baggage-title h5 mb-2">32kg Checked Bag</div>
+                            <div class="baggage-description text-muted mb-3">Extra baggage allowance</div>
+                            <div class="baggage-price h4 text-warning">$50</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="action-buttons">
-                <button type="button" class="btn-back" onclick="previousStep(2)">
+            <div class="action-buttons d-flex justify-content-between mt-5">
+                <button type="button" class="btn btn-outline-secondary" onclick="previousStep(2)">
                     <i class="fas fa-arrow-left"></i> Back
                 </button>
-                <button type="button" class="btn-next" id="btn-complete-checkin" onclick="completeCheckin()" disabled>
+                <button type="button" class="btn btn-success" id="btn-complete-checkin" onclick="completeCheckin()" disabled>
                     Complete Check-in <i class="fas fa-check"></i>
                 </button>
             </div>
@@ -365,8 +383,8 @@
 
         <!-- Step 4: Boarding Pass -->
         <div class="step-content" id="step-4">
-            <div class="alert-checkin success">
-                <i class="fas fa-check-circle"></i>
+            <div class="alert alert-success d-flex align-items-center" role="alert">
+                <i class="fas fa-check-circle me-2 fa-lg"></i>
                 <div>
                     <strong>Check-in Successful!</strong><br>
                     Your boarding pass is ready. Please save or print it for boarding.
@@ -428,19 +446,22 @@
                 </div>
             </div>
 
-            <div class="action-buttons mt-4">
-                <button type="button" class="btn-print" onclick="window.print()">
+            <div class="action-buttons d-flex justify-content-center gap-3 mt-4">
+                <button type="button" class="btn btn-outline-primary" onclick="window.print()">
                     <i class="fas fa-print"></i> Print Boarding Pass
                 </button>
-                <button type="button" class="btn-download" onclick="downloadBoardingPass()">
+                <button type="button" class="btn btn-primary" onclick="downloadBoardingPass()">
                     <i class="fas fa-download"></i> Download PDF
                 </button>
-                <button type="button" class="btn-next" onclick="window.location.href='/passenger'">
+                <button type="button" class="btn btn-success" onclick="window.location.href='/passenger'">
                     <i class="fas fa-home"></i> Back to Home
                 </button>
             </div>
         </div>
     </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
     let currentStep = 1;
@@ -490,20 +511,20 @@
                 const bookingRef = document.getElementById('booking-ref').value;
                 const fullName = document.getElementById('full-name').value;
                 if (!bookingRef || !fullName) {
-                    alert('Please fill in all required fields');
+                    showBootstrapAlert('Please fill in all required fields', 'warning');
                     return false;
                 }
                 return true;
             case 2:
                 const form = document.getElementById('passenger-info-form');
                 if (!form.checkValidity()) {
-                    alert('Please fill in all required fields correctly');
+                    showBootstrapAlert('Please fill in all required fields correctly', 'warning');
                     return false;
                 }
                 return true;
             case 3:
                 if (!selectedSeat) {
-                    alert('Please select a seat');
+                    showBootstrapAlert('Please select a seat', 'warning');
                     return false;
                 }
                 return true;
@@ -511,46 +532,38 @@
                 return true;
         }
     }
-// ============================================
-// VIEW BOARDING PASS FUNCTION
-// ============================================
-window.viewBoardingPass = function(bookingRef) {
-    // Validate the booking reference
-    if (!bookingRef || bookingRef.trim() === '') {
-        alert('Booking reference is required');
-        return;
-    }
-    
-    // Clean up the booking reference
-    const cleanBookingRef = bookingRef.trim().toUpperCase();
-    console.log('Viewing boarding pass for booking:', cleanBookingRef);
-    
-    // Construct the URL
-    const url = `/passenger/boarding-pass/${encodeURIComponent(cleanBookingRef)}`;
-    
-    // Optional: Show a loading message
-    const button = event ? event.target : null;
-    if (button) {
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-        button.disabled = true;
+
+    // VIEW BOARDING PASS FUNCTION
+    window.viewBoardingPass = function(bookingRef) {
+        if (!bookingRef || bookingRef.trim() === '') {
+            showBootstrapAlert('Booking reference is required', 'danger');
+            return;
+        }
         
-        // Navigate after a short delay to show the loading state
-        setTimeout(() => {
+        const cleanBookingRef = bookingRef.trim().toUpperCase();
+        const url = `/passenger/boarding-pass/${encodeURIComponent(cleanBookingRef)}`;
+        
+        const button = event ? event.target : null;
+        if (button) {
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                window.location.href = url;
+            }, 500);
+        } else {
             window.location.href = url;
-        }, 500);
-    } else {
-        // Navigate immediately if no button clicked (programmatic call)
-        window.location.href = url;
-    }
-};
+        }
+    };
+
     // Booking Verification Function
     async function verifyBooking() {
         const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
         const fullName = document.getElementById('full-name').value.trim();
 
         if (!bookingRef || !fullName) {
-            showAlert('Please fill in all fields', 'error');
+            showBootstrapAlert('Please fill in all fields', 'danger');
             return;
         }
 
@@ -593,9 +606,9 @@ window.viewBoardingPass = function(bookingRef) {
                 // Move to next step
                 nextStep(2);
                 
-                showAlert('Booking verified successfully!', 'success');
+                showBootstrapAlert('Booking verified successfully!', 'success');
             } else {
-                showAlert(data.message || 'Booking verification failed', 'error');
+                showBootstrapAlert(data.message || 'Booking verification failed', 'danger');
             }
         } catch (error) {
             console.error('Error verifying booking:', error);
@@ -604,7 +617,7 @@ window.viewBoardingPass = function(bookingRef) {
             verifyBtn.disabled = false;
             verifyBtn.innerHTML = originalText;
             
-            showAlert('An error occurred. Please try again.', 'error');
+            showBootstrapAlert('An error occurred. Please try again.', 'danger');
         }
     }
 
@@ -675,7 +688,7 @@ window.viewBoardingPass = function(bookingRef) {
     // Complete Check-in Function
     async function completeCheckin() {
         if (!selectedSeat) {
-            alert('Please select a seat');
+            showBootstrapAlert('Please select a seat', 'warning');
             return;
         }
         
@@ -684,7 +697,7 @@ window.viewBoardingPass = function(bookingRef) {
         const passport = document.getElementById('passport') ? document.getElementById('passport').value : '';
         
         if (!bookingRef || !fullName) {
-            alert('Please verify your booking first');
+            showBootstrapAlert('Please verify your booking first', 'warning');
             return;
         }
         
@@ -768,14 +781,15 @@ window.viewBoardingPass = function(bookingRef) {
                 console.log('Boarding pass data received:', data.boardingPass);
                 populateBoardingPass(data.boardingPass);
                 nextStep(4);
+                showBootstrapAlert('Check-in completed successfully!', 'success');
             } else {
-                alert(data.message || 'Check-in failed. Please try again.');
+                showBootstrapAlert(data.message || 'Check-in failed. Please try again.', 'danger');
             }
         } catch (error) {
             console.error('Error completing check-in:', error);
             button.disabled = false;
             button.innerHTML = originalText;
-            alert('An error occurred during check-in. Please try again.');
+            showBootstrapAlert('An error occurred during check-in. Please try again.', 'danger');
         }
     }
 
@@ -804,7 +818,7 @@ window.viewBoardingPass = function(bookingRef) {
         document.getElementById('bp-gate').textContent = bp.gate || 'B12';
         
         // Seat
-        let seatNumber = '12A'; // Default
+        let seatNumber = '12A';
         if (typeof bp.seat === 'string') {
             seatNumber = bp.seat;
         } else if (bp.seat && typeof bp.seat === 'object') {
@@ -866,12 +880,14 @@ window.viewBoardingPass = function(bookingRef) {
         // Remove selected class from all baggage options
         document.querySelectorAll('.baggage-option').forEach(option => {
             option.classList.remove('selected');
+            option.classList.remove('border-primary');
         });
         
         // Add selected class to clicked option
         const baggageOption = event.currentTarget || event.target.closest('.baggage-option');
         if (baggageOption) {
             baggageOption.classList.add('selected');
+            baggageOption.classList.add('border-primary');
             
             // Also check the radio button
             const radioButton = baggageOption.querySelector('input[type="radio"]');
@@ -881,47 +897,66 @@ window.viewBoardingPass = function(bookingRef) {
         }
     }
 
-    // Alert Helper Function
-    function showAlert(message, type = 'info') {
+    // Bootstrap Alert Helper Function
+    function showBootstrapAlert(message, type = 'info') {
         // Remove existing alerts
-        const existingAlerts = document.querySelectorAll('.custom-alert');
+        const existingAlerts = document.querySelectorAll('.bootstrap-toast-alert');
         existingAlerts.forEach(alert => alert.remove());
         
-        // Create alert element
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `custom-alert alert-${type}`;
-        alertDiv.innerHTML = `
-            <div class="alert-content">
-                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
-                <span>${message}</span>
-                <button class="alert-close">&times;</button>
+        // Create toast container if not exists
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast element
+        const toastId = 'toast-' + Date.now();
+        const toast = document.createElement('div');
+        toast.className = `toast bootstrap-toast-alert`;
+        toast.id = toastId;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        const alertClass = {
+            'success': 'bg-success text-white',
+            'danger': 'bg-danger text-white',
+            'warning': 'bg-warning text-dark',
+            'info': 'bg-info text-white'
+        }[type] || 'bg-info text-white';
+        
+        toast.innerHTML = `
+            <div class="toast-header ${alertClass}">
+                <strong class="me-auto">
+                    <i class="fas fa-${type === 'danger' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                    ${type.charAt(0).toUpperCase() + type.slice(1)}
+                </strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
             </div>
         `;
         
-        // Add to page
-        document.querySelector('.checkin-container').prepend(alertDiv);
+        toastContainer.appendChild(toast);
         
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            if (alertDiv.parentElement) {
-                alertDiv.remove();
-            }
-        }, 5000);
+        // Initialize and show toast
+        const bsToast = new bootstrap.Toast(toast, {
+            autohide: true,
+            delay: 5000
+        });
+        bsToast.show();
         
-        // Close button handler
-        alertDiv.querySelector('.alert-close').addEventListener('click', () => {
-            alertDiv.remove();
+        // Remove toast from DOM after hiding
+        toast.addEventListener('hidden.bs.toast', function () {
+            toast.remove();
         });
     }
 
     // Download Boarding Pass Function
     function downloadBoardingPass() {
-        alert('Downloading boarding pass...');
-        // In a real implementation, this would generate and download a PDF
-        // For now, we'll just show a message
-        showAlert('Boarding pass download would be implemented here with PDF generation.', 'info');
-        
-        // Alternative: Create a simple text file download
         const passenger = document.getElementById('bp-passenger').textContent;
         const flight = document.getElementById('bp-flight').textContent;
         const seat = document.getElementById('bp-seat').textContent;
@@ -940,6 +975,8 @@ window.viewBoardingPass = function(bookingRef) {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
+        
+        showBootstrapAlert('Boarding pass downloaded successfully!', 'success');
     }
 
     // Initialize Event Listeners
@@ -947,7 +984,9 @@ window.viewBoardingPass = function(bookingRef) {
         // Set default baggage selection
         const defaultBaggage = document.querySelector('.baggage-option input[value="none"]');
         if (defaultBaggage) {
-            defaultBaggage.closest('.baggage-option').classList.add('selected');
+            const baggageOption = defaultBaggage.closest('.baggage-option');
+            baggageOption.classList.add('selected');
+            baggageOption.classList.add('border-primary');
         }
         
         // Add click handlers to seats
@@ -965,59 +1004,18 @@ window.viewBoardingPass = function(bookingRef) {
             });
         });
         
-        // Add CSS for selected baggage option
-        const style = document.createElement('style');
-        style.textContent = `
-            .custom-alert {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 1000;
-                min-width: 300px;
-                border-radius: 8px;
-                padding: 15px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            }
-            .alert-info {
-                background: #eff6ff;
-                border: 2px solid #bfdbfe;
-                color: #1e40af;
-            }
-            .alert-success {
-                background: #f0fdf4;
-                border: 2px solid #86efac;
-                color: #166534;
-            }
-            .alert-error {
-                background: #fef2f2;
-                border: 2px solid #fecaca;
-                color: #991b1b;
-            }
-            .alert-content {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            .alert-close {
-                margin-left: auto;
-                background: none;
-                border: none;
-                font-size: 20px;
-                cursor: pointer;
-                color: inherit;
-            }
-            .baggage-option.selected {
-                border-color: #3b82f6;
-                background-color: #eff6ff;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-            }
-            .baggage-option.selected .baggage-price {
-                color: #3b82f6;
-                font-weight: bold;
-            }
-        `;
-        document.head.appendChild(style);
+        // Add form validation styles
+        document.querySelectorAll('form input, form select').forEach(element => {
+            element.addEventListener('blur', function() {
+                if (this.checkValidity()) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+        });
     });
 
     // Make functions globally accessible
@@ -1028,6 +1026,7 @@ window.viewBoardingPass = function(bookingRef) {
     window.nextStep = nextStep;
     window.previousStep = previousStep;
     window.downloadBoardingPass = downloadBoardingPass;
+    window.showBootstrapAlert = showBootstrapAlert;
 </script>
 </body>
 </html>
