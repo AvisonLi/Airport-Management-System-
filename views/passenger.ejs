@@ -305,7 +305,7 @@
                                                 <h4 class="font-bold text-xl text-gray-800">
                                                     <%= booking.flight_details ? booking.flight_details.flight_code : 'N/A' %>
                                                 </h4>
-                                                <span class="status-badge status-<%= booking.booking_status.replace('_', '-') %>">
+                                                <span class="status-badge status-<%= booking.booking_status.replace('_', '-') %> ">
                                                     <i class="fas fa-circle mr-1" style="font-size: 8px;"></i>
                                                     <%= booking.booking_status.charAt(0).toUpperCase() + booking.booking_status.slice(1).replace('_', ' ') %>
                                                 </span>
@@ -593,7 +593,11 @@
                                     <div>
                                         <p class="text-xs text-gray-500">Location</p>
                                         <p class="font-semibold capitalize">
-                                            <%= booking.baggage_details.current_location %>
+                                            <%= booking.baggage_details && booking.baggage_details.current_location
+                                                    ? booking.baggage_details.current_location.replace('_', ' ')
+                                                    : 'N/A' %>
+
+
                                         </p>
                                     </div>
                                     <div>
