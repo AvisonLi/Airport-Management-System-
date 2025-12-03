@@ -423,17 +423,12 @@ app.get('/passenger', requirePassengerAuth, async (req, res) => {
         booking_reference: booking.booking_reference
       });
 
-      
-    return {
-      ...booking,
-      flight_details: flight,
-      boarding_pass: boardingPass,
-      baggage_details: {
-        current_location: baggage?.current_location || 'N/A',
-        ...baggage
-      }
-    };
-
+      return {
+        ...booking,
+        flight_details: flight,
+        boarding_pass: boardingPass,
+        baggage_details: baggage
+      };
     }));
 
     res.render('passenger', {
