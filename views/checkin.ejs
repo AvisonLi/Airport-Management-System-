@@ -183,12 +183,13 @@
                     </label>
                     <select id="nationality" name="nationality" class="form-select" required>
                         <option value="">Select nationality</option>
-                        <option value="HK">HKSAR</option>
+                        <option value="TW">Taiwan</option>
                         <option value="US">United States</option>
                         <option value="JP">Japan</option>
                         <option value="CN">China</option>
                         <option value="KR">South Korea</option>
                         <option value="GB">United Kingdom</option>
+                        <option value="HK">Hong Kong SAR</option>
                     </select>
                 </div>
 
@@ -944,7 +945,7 @@ function populateFlightInfo(booking) {
         });
     }
 
-    // Pre-fill Passenger Information
+    // Pre-fill Passenger Information 
 function prefillPassengerInfo(booking) {
     console.log('Prefilling passenger info with:', booking);
     
@@ -959,18 +960,42 @@ function prefillPassengerInfo(booking) {
     // Set full name confirm
     document.getElementById('full-name-confirm').value = passengerName;
     
-    // Also try to fill other fields if available in booking data
-    if (booking.passport) {
+    // IMPORTANT: These fields should come from the user's account data
+    // The booking object should contain passenger details from the database
+    
+    // Set passport number from booking.passport_number
+    if (booking.passport_number) {
+        document.getElementById('passport').value = booking.passport_number;
+    } else if (booking.passport) {
         document.getElementById('passport').value = booking.passport;
     }
+    
+    // Set nationality - make sure the value matches the option value
+    if (booking.nationality) {
+        const nationalitySelect = document.getElementById('nationality');
+        // Try to find the option with matching text or value
+        for (let option of nationalitySelect.options) {
+            if (option.value === booking.nationality || 
+                option.text.includes(booking.nationality)) {
+                option.selected = true;
+                break;
+            }
+        }
+        // If not found, set the value directly
+        nationalitySelect.value = booking.nationality;
+    }
+    
+    // Set date of birth - format it properly
+    if (booking.date_of_birth) {
+        const dob = new Date(booking.date_of_birth);
+        // Format as YYYY-MM-DD for date input
+        const formattedDOB = dob.toISOString().split('T')[0];
+        document.getElementById('dob').value = formattedDOB;
+    }
+    
+    // Set email
     if (booking.email) {
         document.getElementById('email').value = booking.email;
-    }
-    if (booking.date_of_birth) {
-        document.getElementById('dob').value = booking.date_of_birth;
-    }
-    if (booking.nationality) {
-        document.getElementById('nationality').value = booking.nationality;
     }
     
     // Also update the airport labels if available

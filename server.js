@@ -797,6 +797,11 @@ app.post('/api/verify-booking', async (req, res) => {
       });
     }
 
+    const usersCollection = getCollection(collections.users);
+        const passenger = await usersCollection.findOne({ 
+            user_id: booking.passenger_id 
+        });
+
     // Format the booking data for frontend
     const formattedBooking = {
       booking_reference: booking.booking_reference,
@@ -816,6 +821,11 @@ app.post('/api/verify-booking', async (req, res) => {
     destination_name: flight.destination_city || getAirportName(flight.destination_airport),
     flight_number: booking.flight_code,
     departure_time: flight.scheduled_departure,
+                passport_number: passenger ? passenger.passport_number : null,
+            nationality: passenger ? passenger.nationality : null,
+            date_of_birth: passenger ? passenger.date_of_birth : null,
+            email: passenger ? passenger.email : null,
+            phone_number: passenger ? passenger.phone_number : null,
       gate: flight.gate || 'TBA',
       flight_date_display: flight.flight_date ? 
         new Date(flight.flight_date).toLocaleDateString('en-US', { 
