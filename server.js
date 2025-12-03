@@ -812,6 +812,10 @@ app.post('/api/verify-booking', async (req, res) => {
       departure_time: flight.scheduled_departure,
       origin_name: getAirportName(flight.origin_airport),
       destination_name: getAirportName(flight.destination_airport),
+      origin_name: flight.origin_city || getAirportName(flight.origin_airport),
+    destination_name: flight.destination_city || getAirportName(flight.destination_airport),
+    flight_number: booking.flight_code,
+    departure_time: flight.scheduled_departure,
       gate: flight.gate || 'TBA',
       flight_date_display: flight.flight_date ? 
         new Date(flight.flight_date).toLocaleDateString('en-US', { 

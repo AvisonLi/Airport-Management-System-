@@ -183,7 +183,7 @@
                     </label>
                     <select id="nationality" name="nationality" class="form-select" required>
                         <option value="">Select nationality</option>
-                        <option value="TW">Taiwan</option>
+                        <option value="HK">HKSAR</option>
                         <option value="US">United States</option>
                         <option value="JP">Japan</option>
                         <option value="CN">China</option>
@@ -332,45 +332,50 @@
             </div>
 
             <!-- Baggage Options -->
-            <h3 class="mt-5 mb-3"><i class="fas fa-suitcase"></i> Add Baggage (Optional)</h3>
-            <div class="baggage-options row g-3">
-                <div class="col-md-4">
-                    <div class="baggage-option card h-100" onclick="selectBaggage('none')">
-                        <div class="card-body text-center">
-                            <input type="radio" name="baggage" value="none" class="form-check-input position-absolute top-0 end-0 m-2" checked>
-                            <div class="baggage-icon mb-3"><i class="fas fa-ban fa-2x text-muted"></i></div>
-                            <div class="baggage-title h5 mb-2">No Extra Baggage</div>
-                            <div class="baggage-description text-muted mb-3">Carry-on only (7kg)</div>
-                            <div class="baggage-price h4 text-success">$0</div>
-                        </div>
-                    </div>
+            <h3 class="mt-4 mb-3"><i class="fas fa-suitcase"></i> Add Baggage (Optional)</h3>
+<div class="row row-cols-1 row-cols-md-3 g-3">
+    <div class="col">
+        <div class="baggage-option card h-100" onclick="selectBaggage('none', this)">
+            <div class="card-body p-3 text-center">
+                <input type="radio" name="baggage" value="none" class="form-check-input position-absolute top-0 end-0 m-2" checked>
+                <div class="mb-2">
+                    <i class="fas fa-ban fa-lg text-muted"></i>
                 </div>
-
-                <div class="col-md-4">
-                    <div class="baggage-option card h-100" onclick="selectBaggage('20kg')">
-                        <div class="card-body text-center">
-                            <input type="radio" name="baggage" value="20kg" class="form-check-input position-absolute top-0 end-0 m-2">
-                            <div class="baggage-icon mb-3"><i class="fas fa-suitcase fa-2x text-primary"></i></div>
-                            <div class="baggage-title h5 mb-2">20kg Checked Bag</div>
-                            <div class="baggage-description text-muted mb-3">Standard checked baggage</div>
-                            <div class="baggage-price h4 text-primary">$30</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="baggage-option card h-100" onclick="selectBaggage('32kg')">
-                        <div class="card-body text-center">
-                            <input type="radio" name="baggage" value="32kg" class="form-check-input position-absolute top-0 end-0 m-2">
-                            <div class="baggage-icon mb-3"><i class="fas fa-suitcase-rolling fa-2x text-warning"></i></div>
-                            <div class="baggage-title h5 mb-2">32kg Checked Bag</div>
-                            <div class="baggage-description text-muted mb-3">Extra baggage allowance</div>
-                            <div class="baggage-price h4 text-warning">$50</div>
-                        </div>
-                    </div>
-                </div>
+                <h6 class="card-title mb-1">No Extra Baggage</h6>
+                <p class="card-text small text-muted mb-2">Carry-on only (7kg)</p>
+                <div class="h5 mb-0 text-success">$0</div>
             </div>
+        </div>
+    </div>
 
+    <div class="col">
+        <div class="baggage-option card h-100" onclick="selectBaggage('20kg', this)">
+            <div class="card-body p-3 text-center">
+                <input type="radio" name="baggage" value="20kg" class="form-check-input position-absolute top-0 end-0 m-2">
+                <div class="mb-2">
+                    <i class="fas fa-suitcase fa-lg text-primary"></i>
+                </div>
+                <h6 class="card-title mb-1">20kg Checked Bag</h6>
+                <p class="card-text small text-muted mb-2">Standard checked baggage</p>
+                <div class="h5 mb-0 text-primary">$30</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col">
+        <div class="baggage-option card h-100" onclick="selectBaggage('32kg', this)">
+            <div class="card-body p-3 text-center">
+                <input type="radio" name="baggage" value="32kg" class="form-check-input position-absolute top-0 end-0 m-2">
+                <div class="mb-2">
+                    <i class="fas fa-suitcase-rolling fa-lg text-warning"></i>
+                </div>
+                <h6 class="card-title mb-1">32kg Checked Bag</h6>
+                <p class="card-text small text-muted mb-2">Extra baggage allowance</p>
+                <div class="h5 mb-0 text-warning">$50</div>
+            </div>
+        </div>
+    </div>
+</div>
             <div class="action-buttons d-flex justify-content-between mt-5">
                 <button type="button" class="btn btn-outline-secondary" onclick="previousStep(2)">
                     <i class="fas fa-arrow-left"></i> Back
@@ -558,133 +563,118 @@
     };
 
     // Booking Verification Function
-    async function verifyBooking() {
-        const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
-        const fullName = document.getElementById('full-name').value.trim();
+async function verifyBooking() {
+    const bookingRef = document.getElementById('booking-ref').value.trim().toUpperCase();
+    const fullName = document.getElementById('full-name').value.trim();
 
-        if (!bookingRef || !fullName) {
-            showBootstrapAlert('Please fill in all fields', 'danger');
-            return;
-        }
-
-        // Show loading state
-        const verifyBtn = document.querySelector('.btn-next');
-        const originalText = verifyBtn.innerHTML;
-        verifyBtn.disabled = true;
-        verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
-
-        try {
-            const response = await fetch('/api/verify-booking', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ 
-                    bookingRef: bookingRef, 
-                    fullName: fullName 
-                })
-            });
-
-            const data = await response.json();
-            
-            console.log('Verification response:', data);
-            
-            // Reset button
-            verifyBtn.disabled = false;
-            verifyBtn.innerHTML = originalText;
-            
-            if (data.success && data.booking) {
-                bookingData = data.booking;
-                console.log('Booking data:', bookingData);
-                
-                // Populate flight information
-                populateFlightInfo(bookingData);
-                
-                // Pre-fill passenger information
-                prefillPassengerInfo(bookingData);
-                
-                // Move to next step
-                nextStep(2);
-                
-                showBootstrapAlert('Booking verified successfully!', 'success');
-            } else {
-                showBootstrapAlert(data.message || 'Booking verification failed', 'danger');
-            }
-        } catch (error) {
-            console.error('Error verifying booking:', error);
-            
-            // Reset button
-            verifyBtn.disabled = false;
-            verifyBtn.innerHTML = originalText;
-            
-            showBootstrapAlert('An error occurred. Please try again.', 'danger');
-        }
+    if (!bookingRef || !fullName) {
+        showBootstrapAlert('Please fill in all fields', 'danger');
+        return;
     }
 
-    // Populate Flight Information
-    function populateFlightInfo(booking) {
-        console.log('Populating flight info with:', booking);
-        
-        // Set origin and destination
-        document.getElementById('origin-code').textContent = booking.origin || booking.departure_airport || 'N/A';
-        document.getElementById('destination-code').textContent = booking.destination || booking.arrival_airport || 'N/A';
-        document.getElementById('flight-number').textContent = booking.flight_code || booking.flight_number || 'N/A';
-        
-        // Format and set date
-        const flightDate = booking.flight_date ? new Date(booking.flight_date) : new Date();
-        document.getElementById('flight-date').textContent = flightDate.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
+    // Show loading state - FIXED: Get the button that triggered this function
+    let verifyBtn;
+    if (event && event.target) {
+        verifyBtn = event.target;
+    } else {
+        // Fallback: try to find the continue button in step 1
+        const step1Buttons = document.querySelectorAll('#step-1 .btn-primary');
+        verifyBtn = step1Buttons.length > 0 ? step1Buttons[step1Buttons.length - 1] : null;
+    }
+    
+    if (!verifyBtn) {
+        // If we can't find the button, proceed without loading state
+        verifyBtn = { disabled: false, innerHTML: '' };
+    }
+    
+    const originalText = verifyBtn.innerHTML;
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+
+    try {
+        const response = await fetch('/api/verify-booking', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                bookingRef: bookingRef, 
+                fullName: fullName 
+            })
         });
-        
-        // Set departure time
-        document.getElementById('departure-time').textContent = booking.departure_time || '09:00';
-        
-        // Set passenger name
-        document.getElementById('passenger-name').textContent = booking.passenger_name || 'Passenger';
-        
-        // Also update boarding pass section
-        document.getElementById('bp-origin').textContent = booking.origin || booking.departure_airport || 'TPE';
-        document.getElementById('bp-destination').textContent = booking.destination || booking.arrival_airport || 'NRT';
-        document.getElementById('bp-flight').textContent = booking.flight_code || booking.flight_number || 'CI100';
-        
-        // Format date for boarding pass (e.g., "15 DEC")
-        const bpDate = flightDate.toLocaleDateString('en-US', {
-            day: 'numeric',
-            month: 'short'
-        }).toUpperCase();
-        document.getElementById('bp-date').textContent = bpDate;
-    }
 
-    // Pre-fill Passenger Information
-    function prefillPassengerInfo(booking) {
-        const passengerName = booking.passenger_name || '';
-        const nameParts = passengerName.split(' ');
+        const data = await response.json();
         
-        // Set first name (first part)
-        if (nameParts.length > 0) {
-            document.getElementById('first-name').value = nameParts[0];
+        console.log('Verification response:', data);
+        
+        // Reset button
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = originalText;
+        
+        if (data.success && data.booking) {
+            bookingData = data.booking;
+            console.log('Booking data:', bookingData);
+            
+            // Populate flight information
+            populateFlightInfo(bookingData);
+            
+            // Pre-fill passenger information
+            prefillPassengerInfo(bookingData);
+            
+            // Move to next step
+            nextStep(2);
+            
+            showBootstrapAlert('Booking verified successfully!', 'success');
+        } else {
+            showBootstrapAlert(data.message || 'Booking verification failed', 'danger');
+        }
+    } catch (error) {
+        console.error('Error verifying booking:', error);
+        
+        // Reset button
+        if (verifyBtn) {
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = originalText;
         }
         
-        // Set full name confirm
-        document.getElementById('full-name-confirm').value = passengerName;
-        
-        // Also try to fill other fields if available in booking data
-        if (booking.passport) {
-            document.getElementById('passport').value = booking.passport;
-        }
-        if (booking.email) {
-            document.getElementById('email').value = booking.email;
-        }
-        if (booking.date_of_birth) {
-            document.getElementById('dob').value = booking.date_of_birth;
-        }
-        if (booking.nationality) {
-            document.getElementById('nationality').value = booking.nationality;
-        }
+        showBootstrapAlert('An error occurred. Please try again.', 'danger');
     }
-
+}
+    // Populate Flight Information
+function populateFlightInfo(booking) {
+    console.log('Populating flight info with:', booking);
+    
+    // Set origin and destination
+    document.getElementById('origin-code').textContent = booking.origin || booking.departure_airport || 'N/A';
+    document.getElementById('destination-code').textContent = booking.destination || booking.arrival_airport || 'N/A';
+    document.getElementById('flight-number').textContent = booking.flight_code || booking.flight_number || 'N/A';
+    
+    // Format and set date
+    const flightDate = booking.flight_date ? new Date(booking.flight_date) : new Date();
+    document.getElementById('flight-date').textContent = flightDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+    
+    // Set departure time
+    document.getElementById('departure-time').textContent = booking.departure_time || '09:00';
+    
+    // Set passenger name
+    document.getElementById('passenger-name').textContent = booking.passenger_name || 'Passenger';
+    
+    // Also update boarding pass section
+    document.getElementById('bp-origin').textContent = booking.origin || booking.departure_airport || 'TPE';
+    document.getElementById('bp-destination').textContent = booking.destination || booking.arrival_airport || 'NRT';
+    document.getElementById('bp-flight').textContent = booking.flight_code || booking.flight_number || 'CI100';
+    
+    // Format date for boarding pass (e.g., "15 DEC")
+    const bpDate = flightDate.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short'
+    }).toUpperCase();
+    document.getElementById('bp-date').textContent = bpDate;
+}
     // Complete Check-in Function
     async function completeCheckin() {
         if (!selectedSeat) {
@@ -949,11 +939,55 @@
         });
         bsToast.show();
         
-        // Remove toast from DOM after hiding
         toast.addEventListener('hidden.bs.toast', function () {
             toast.remove();
         });
     }
+
+    // Pre-fill Passenger Information
+function prefillPassengerInfo(booking) {
+    console.log('Prefilling passenger info with:', booking);
+    
+    const passengerName = booking.passenger_name || '';
+    const nameParts = passengerName.split(' ');
+    
+    // Set first name (first part)
+    if (nameParts.length > 0) {
+        document.getElementById('first-name').value = nameParts[0];
+    }
+    
+    // Set full name confirm
+    document.getElementById('full-name-confirm').value = passengerName;
+    
+    // Also try to fill other fields if available in booking data
+    if (booking.passport) {
+        document.getElementById('passport').value = booking.passport;
+    }
+    if (booking.email) {
+        document.getElementById('email').value = booking.email;
+    }
+    if (booking.date_of_birth) {
+        document.getElementById('dob').value = booking.date_of_birth;
+    }
+    if (booking.nationality) {
+        document.getElementById('nationality').value = booking.nationality;
+    }
+    
+    // Also update the airport labels if available
+    const airportLabels = document.querySelectorAll('.flight-detail-label');
+    if (booking.origin_name) {
+        // The second flight-detail-label is the origin name
+        if (airportLabels[1]) {
+            airportLabels[1].textContent = booking.origin_name;
+        }
+    }
+    if (booking.destination_name) {
+        // The fourth flight-detail-label is the destination name
+        if (airportLabels[3]) {
+            airportLabels[3].textContent = booking.destination_name;
+        }
+    }
+}
 
     // Download Boarding Pass Function
     function downloadBoardingPass() {
