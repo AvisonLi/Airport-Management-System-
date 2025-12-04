@@ -1015,14 +1015,27 @@ function prefillPassengerInfo(booking) {
 }
 
     // Download Boarding Pass Function - FIXED for PDF
-function downloadBoardingPass() {
-    // Try to use jsPDF if available
-    const { jsPDF } = window.jspdf || {};
+f// Download Boarding Pass Function - FIXED with proper PDF generation
+async function downloadBoardingPass() {
+    const button = event?.target || document.getElementById('btn-download-pdf') || document.querySelector('.btn-primary[onclick*="downloadBoardingPass"]');
+    const originalText = button?.innerHTML || '';
     
-    if (jsPDF) {
-        // Generate PDF
-        const doc = new jsPDF();
+    // Show loading state
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+    }
+    
+    try {
+        // Check if jsPDF is available
+        if (typeof window.jspdf === 'undefined') {
+            // Load jsPDF dynamically
+            await loadJSPDF();
+        }
         
+        const { jsPDF } = window.jspdf;
+        
+        // Get boarding pass data
         const passenger = document.getElementById('bp-passenger').textContent;
         const flight = document.getElementById('bp-flight').textContent;
         const seat = document.getElementById('bp-seat').textContent;
@@ -1033,136 +1046,231 @@ function downloadBoardingPass() {
         const origin = document.getElementById('bp-origin').textContent;
         const destination = document.getElementById('bp-destination').textContent;
         const cabinClass = document.getElementById('bp-class').textContent;
+        const bookingRef = bookingData?.bookingRef || 
+                         document.getElementById('booking-ref')?.value || 
+                         'ABC123';
         
-        // Add airline logo and title
-        doc.setFontSize(24);
-        doc.setTextColor(59, 130, 246); // Blue color
-        doc.text('✈️ HKAP Airlines', 105, 20, { align: 'center' });
+        // Create PDF document
+        const doc = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: [85, 54] // Standard boarding pass size
+        });
         
-        doc.setFontSize(16);
+        // Set background color
+        doc.setFillColor(240, 240, 240);
+        doc.rect(0, 0, 85, 54, 'F');
+        
+        // Draw airline header
+        doc.setFillColor(25, 115, 232); // Blue color
+        doc.rect(0, 0, 85, 10, 'F');
+        
+        // Airline name and logo
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('✈️ HKAP AIRLINES', 42.5, 5, { align: 'center' });
+        
+        // Boarding pass title
         doc.setTextColor(0, 0, 0);
-        doc.text('BOARDING PASS', 105, 30, { align: 'center' });
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('BOARDING PASS', 42.5, 12, { align: 'center' });
         
-        // Draw border
-        doc.setDrawColor(0);
-        doc.setLineWidth(0.5);
-        doc.rect(15, 35, 180, 80);
+        // Draw dividing line
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.2);
+        doc.line(2, 14, 83, 14);
         
-        // Passenger and flight info
-        doc.setFontSize(12);
-        doc.text('PASSENGER:', 20, 50);
-        doc.setFont(undefined, 'bold');
-        doc.text(passenger, 60, 50);
+        // Flight route
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(origin, 15, 20);
+        doc.text('→', 42.5, 20, { align: 'center' });
+        doc.text(destination, 70, 20, { align: 'right' });
         
-        doc.setFont(undefined, 'normal');
-        doc.text('FLIGHT:', 20, 60);
-        doc.setFont(undefined, 'bold');
-        doc.text(flight, 60, 60);
+        // Airport names
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'normal');
+        const airportNames = {
+            'TPE': 'Taipei Taoyuan',
+            'NRT': 'Tokyo Narita',
+            'HKG': 'Hong Kong',
+            'JFK': 'New York',
+            'LAX': 'Los Angeles'
+        };
+        doc.text(airportNames[origin] || origin, 15, 23);
+        doc.text(airportNames[destination] || destination, 70, 23, { align: 'right' });
         
-        // Route
-        doc.setFont(undefined, 'normal');
-        doc.text('FROM:', 20, 70);
-        doc.setFont(undefined, 'bold');
-        doc.text(origin, 60, 70);
-        
-        doc.setFont(undefined, 'normal');
-        doc.text('TO:', 110, 70);
-        doc.setFont(undefined, 'bold');
-        doc.text(destination, 130, 70);
-        
-        // Details section
-        doc.setDrawColor(200);
-        doc.line(15, 80, 195, 80);
-        
+        // Passenger name
+        doc.setFontSize(8);
+        doc.text('PASSENGER', 2, 30);
         doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
-        doc.text('DATE', 20, 90);
-        doc.text('TIME', 70, 90);
-        doc.text('GATE', 120, 90);
-        doc.text('SEAT', 170, 90);
+        doc.setFont('helvetica', 'bold');
+        doc.text(passenger, 2, 34);
         
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text(date, 20, 100);
-        doc.text(time, 70, 100);
-        doc.text(gate, 120, 100);
-        doc.text(seat, 170, 100);
+        // Flight details in a grid
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'normal');
+        
+        // Column 1
+        doc.text('FLIGHT', 2, 40);
+        doc.setFont('helvetica', 'bold');
+        doc.text(flight, 2, 43);
+        
+        // Column 2
+        doc.setFont('helvetica', 'normal');
+        doc.text('DATE', 22, 40);
+        doc.setFont('helvetica', 'bold');
+        doc.text(date, 22, 43);
+        
+        // Column 3
+        doc.setFont('helvetica', 'normal');
+        doc.text('TIME', 42, 40);
+        doc.setFont('helvetica', 'bold');
+        doc.text(time, 42, 43);
+        
+        // Column 4
+        doc.setFont('helvetica', 'normal');
+        doc.text('GATE', 62, 40);
+        doc.setFont('helvetica', 'bold');
+        doc.text(gate, 62, 43);
+        
+        // Seat and Class
+        doc.setFont('helvetica', 'normal');
+        doc.text('SEAT', 2, 48);
+        doc.setFont('helvetica', 'bold');
+        doc.text(seat, 2, 51);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.text('CLASS', 22, 48);
+        doc.setFont('helvetica', 'bold');
+        doc.text(cabinClass, 22, 51);
         
         // Boarding time
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
-        doc.text('BOARDING TIME:', 20, 115);
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(220, 38, 38); // Red color
-        doc.text(boarding, 70, 115);
+        doc.setFont('helvetica', 'normal');
+        doc.text('BOARDING', 42, 48);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(220, 38, 38); // Red color for boarding time
+        doc.text(boarding, 42, 51);
         
         // Barcode area
-        doc.setDrawColor(0);
-        doc.setFillColor(240, 240, 240);
-        doc.rect(15, 125, 180, 15, 'F');
-        doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
-        doc.text('SCAN AT GATE', 105, 132, { align: 'center' });
-        doc.setFontSize(10);
-        doc.setFont('courier', 'bold');
+        doc.setDrawColor(0, 0, 0);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(60, 45, 23, 8, 'F');
+        doc.rect(60, 45, 23, 8);
+        
+        // Barcode text
         doc.setTextColor(0, 0, 0);
-        doc.text(`|| ${bookingData?.bookingRef || 'BARCODE'} ||`, 105, 140, { align: 'center' });
+        doc.setFontSize(5);
+        doc.setFont('courier', 'normal');
+        doc.text(`*${bookingRef}*`, 71.5, 49, { align: 'center' });
         
-        // Save PDF
-        doc.save(`BoardingPass_${flight}_${passenger}.pdf`);
-        showBootstrapAlert('Boarding pass downloaded as PDF!', 'success');
-    } else {
-        // Fallback to text download
-        const passenger = document.getElementById('bp-passenger').textContent;
-        const flight = document.getElementById('bp-flight').textContent;
-        const seat = document.getElementById('bp-seat').textContent;
-        const gate = document.getElementById('bp-gate').textContent;
-        const date = document.getElementById('bp-date').textContent;
-        const time = document.getElementById('bp-time').textContent;
-        const boarding = document.getElementById('bp-boarding').textContent;
-        const origin = document.getElementById('bp-origin').textContent;
-        const destination = document.getElementById('bp-destination').textContent;
+        // Save the PDF
+        doc.save(`BoardingPass_${flight}_${passenger.replace(/\s+/g, '_')}.pdf`);
         
-        const content = `BOARDING PASS\n\nPassenger: ${passenger}\nFlight: ${flight}\nDate: ${date}\nTime: ${time}\nGate: ${gate}\nSeat: ${seat}\nBoarding Time: ${boarding}\nRoute: ${origin} to ${destination}\n\nThank you for flying with HKAP Airlines!`;
+        showBootstrapAlert('Boarding pass downloaded successfully!', 'success');
         
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `BoardingPass_${flight}_${passenger}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        showBootstrapAlert('Failed to generate PDF. Please try again or use the print option.', 'danger');
         
-        showBootstrapAlert('Text file downloaded. For PDF, please install jsPDF library.', 'info');
+        // Fallback to text file
+        generateTextFallback();
+    } finally {
+        // Restore button state
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
     }
 }
 
-// Add jsPDF to passenger check-in page
-if (typeof window !== 'undefined') {
-    // Load jsPDF if not already loaded
-    if (!window.jspdf) {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        script.onload = () => {
-            console.log('jsPDF loaded for passenger check-in');
-        };
-        document.head.appendChild(script);
-    }
-}
-
-    // Initialize Event Listeners
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set default baggage selection
-        const defaultBaggage = document.querySelector('.baggage-option input[value="none"]');
-        if (defaultBaggage) {
-            const baggageOption = defaultBaggage.closest('.baggage-option');
-            baggageOption.classList.add('selected');
-            baggageOption.classList.add('border-primary');
+// Helper function to load jsPDF
+function loadJSPDF() {
+    return new Promise((resolve, reject) => {
+        // Check if already loading
+        if (window.jspdfLoadingPromise) {
+            return window.jspdfLoadingPromise.then(resolve).catch(reject);
         }
         
+        // Create loading promise
+        window.jspdfLoadingPromise = new Promise((resolveLoad, rejectLoad) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+            script.onload = () => {
+                console.log('jsPDF loaded successfully');
+                resolveLoad();
+                resolve();
+            };
+            script.onerror = () => {
+                console.error('Failed to load jsPDF');
+                rejectLoad(new Error('Failed to load PDF library'));
+                reject(new Error('Failed to load PDF library'));
+            };
+            document.head.appendChild(script);
+        });
+        
+        return window.jspdfLoadingPromise;
+    });
+}
+
+// Fallback text generator
+function generateTextFallback() {
+    const passenger = document.getElementById('bp-passenger').textContent;
+    const flight = document.getElementById('bp-flight').textContent;
+    const seat = document.getElementById('bp-seat').textContent;
+    const gate = document.getElementById('bp-gate').textContent;
+    const date = document.getElementById('bp-date').textContent;
+    const time = document.getElementById('bp-time').textContent;
+    const boarding = document.getElementById('bp-boarding').textContent;
+    const origin = document.getElementById('bp-origin').textContent;
+    const destination = document.getElementById('bp-destination').textContent;
+    const cabinClass = document.getElementById('bp-class').textContent;
+    
+    const content = `
+    ╔══════════════════════════════════════════════════╗
+    ║           H K A P   A I R L I N E S              ║
+    ║              BOARDING PASS                       ║
+    ╠══════════════════════════════════════════════════╣
+    ║                                                  ║
+    ║  PASSENGER: ${passenger.padEnd(30)}║
+    ║  FLIGHT:    ${flight.padEnd(30)}║
+    ║  ROUTE:     ${origin} → ${destination.padEnd(24)}║
+    ║  DATE:      ${date.padEnd(30)}║
+    ║  TIME:      ${time.padEnd(30)}║
+    ║  GATE:      ${gate.padEnd(30)}║
+    ║  SEAT:      ${seat.padEnd(30)}║
+    ║  CLASS:     ${cabinClass.padEnd(30)}║
+    ║  BOARDING:  ${boarding.padEnd(28)}║
+    ║                                                  ║
+    ║  Please be at the gate 30 minutes before         ║
+    ║  departure with your boarding pass and passport. ║
+    ║                                                  ║
+    ╚══════════════════════════════════════════════════╝
+    `;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `BoardingPass_${flight}_${passenger.replace(/\s+/g, '_')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Preload jsPDF in background
+    const preloadScript = document.createElement('script');
+    preloadScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    preloadScript.async = true;
+    preloadScript.onload = () => {
+        console.log('jsPDF preloaded successfully');
+    };
+    document.head.appendChild(preloadScript);
+});
         // Add click handlers to seats
         document.querySelectorAll('.seat:not(.occupied):not(.aisle)').forEach(seat => {
             seat.addEventListener('click', function() {
@@ -1190,7 +1298,6 @@ if (typeof window !== 'undefined') {
                 }
             });
         });
-    });
 
     // Make functions globally accessible
     window.selectSeat = selectSeat;

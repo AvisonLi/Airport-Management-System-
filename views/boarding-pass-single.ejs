@@ -179,12 +179,6 @@
         </div>
 
         <div class="action-buttons">
-            <button type="button" class="btn-print" onclick="window.print()">
-                <i class="fas fa-print"></i> Print Boarding Pass
-            </button>
-            <button type="button" class="btn-download" onclick="downloadBoardingPass()">
-                <i class="fas fa-download"></i> Download PDF
-            </button>
             <a href="/checkin" class="btn-next">
                 <i class="fas fa-plane-departure"></i> Check-in Another Flight
             </a>
@@ -199,25 +193,5 @@
         </div>
         <% } %>
     </div>
-
-    <script>
-        function downloadBoardingPass() {
-            const passenger = document.querySelector('.bp-value').textContent;
-            const flight = document.querySelectorAll('.bp-value')[1].textContent;
-            const seat = document.querySelectorAll('.bp-value')[5].textContent;
-            
-            const content = `HKAP AIRLINES BOARDING PASS\n\nPassenger: ${passenger}\nFlight: ${flight}\nSeat: ${seat}\n\nThank you for flying with HKAP Airlines!`;
-            
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `BoardingPass_${flight}_${passenger}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        }
-    </script>
 </body>
 </html>
