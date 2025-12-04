@@ -1,239 +1,222 @@
 // Crew Management JavaScript
 
-// Global state
-let crewData = [];
-let servicesData = [];
+// Global variables
+let crewMembers = [];
+let groundServices = [];
 
-// DOM Elements
-const crewGrid = document.getElementById('crewGrid');
-const totalCrewCountEl = document.getElementById('totalCrewCount');
-const availableCountEl = document.getElementById('availableCount');
-const onTaskCountEl = document.getElementById('onTaskCount');
-const tasksTodayEl = document.getElementById('tasksToday');
-
-// Modals
-const addCrewModal = document.getElementById('addCrewModal');
-const updateCrewModal = document.getElementById('updateCrewModal');
-
-// Forms
-const addCrewForm = document.getElementById('addCrewForm');
-const updateCrewForm = document.getElementById('updateCrewForm');
-
-// Initialize
+// DOM Ready
 document.addEventListener('DOMContentLoaded', function() {
     loadCrew();
     loadGroundServices();
     
-    // Setup form event listeners
-    if (addCrewForm) {
-        addCrewForm.addEventListener('submit', handleAddCrew);
-    }
+    // Add Crew Form Submission
+    document.getElementById('addCrewForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        addCrewMember();
+    });
     
-    if (updateCrewForm) {
-        updateCrewForm.addEventListener('submit', handleUpdateCrew);
-    }
+    // Update Crew Form Submission
+    document.getElementById('updateCrewForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        updateCrewMember();
+    });
     
-    // Close modals on click outside
-    window.addEventListener('click', function(event) {
-        if (event.target === addCrewModal) {
-            closeAddCrewModal();
-        }
-        if (event.target === updateCrewModal) {
-            closeUpdateCrewModal();
-        }
+    // Assign Task Form Submission
+    document.getElementById('assignTaskForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        assignTask();
     });
 });
 
-// Load crew data
+// Load all crew members
 async function loadCrew() {
     try {
         const response = await fetch('/api/crew');
         const data = await response.json();
         
         if (data.success) {
-            crewData = data.crew;
-            updateCrewDisplay();
+            crewMembers = data.crew;
+            displayCrewMembers(crewMembers);
             updateStatistics();
         } else {
-            console.error('Error loading crew:', data.message);
-            showNotification('Error loading crew data', 'error');
+            showError('Failed to load crew members: ' + data.message);
         }
     } catch (error) {
-        console.error('Error loading crew:', error);
-        showNotification('Network error loading crew', 'error');
+        showError('Error loading crew members: ' + error.message);
     }
 }
 
-// Load ground services
+// Load ground services for task assignment
 async function loadGroundServices() {
     try {
         const response = await fetch('/api/ground-services');
-        const data = await response.json();
-        
-        if (data.success) {
-            servicesData = data.services;
-            updateStatistics();
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                groundServices = data.services;
+            }
         }
     } catch (error) {
-        console.error('Error loading services:', error);
+        console.error('Error loading ground services:', error);
     }
 }
 
-// Update crew display
-function updateCrewDisplay() {
-    if (!crewGrid) return;
+// Display crew members in grid
+function displayCrewMembers(crewList) {
+    const crewGrid = document.getElementById('crewGrid');
     
-    if (crewData.length === 0) {
+    if (!crewList || crewList.length === 0) {
         crewGrid.innerHTML = `
-            <p style="text-align: center; padding: 40px; color: #666;">
-                No crew members found. Add your first crew member!
-            </p>
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666;">
+                <p>No crew members found. Add your first crew member!</p>
+            </div>
         `;
         return;
     }
     
-    crewGrid.innerHTML = crewData.map(crew => createCrewCard(crew)).join('');
-}
-
-// Create crew card HTML
-function createCrewCard(crew) {
-    const statusIcon = getStatusIcon(crew.status);
-    const typeIcon = getTypeIcon(crew.crew_type);
-    
-    return `
-        <div class="crew-card">
-            <div class="crew-card-header">
-                <div class="crew-avatar">${typeIcon}</div>
-                <div class="crew-info">
-                    <h4>${crew.full_name}</h4>
-                    <span class="crew-id">${crew.crew_id}</span>
+    crewGrid.innerHTML = crewList.map(crew => {
+        // Determine status badge color
+        let statusBadge = '';
+        switch(crew.status) {
+            case 'available':
+                statusBadge = '<span class="badge badge-success">Available</span>';
+                break;
+            case 'on_task':
+                statusBadge = '<span class="badge badge-warning">On Task</span>';
+                break;
+            case 'off_duty':
+                statusBadge = '<span class="badge badge-secondary">Off Duty</span>';
+                break;
+            default:
+                statusBadge = `<span class="badge">${crew.status}</span>`;
+        }
+        
+        // Determine crew type icon
+        let typeIcon = '👷';
+        switch(crew.crew_type) {
+            case 'cleaning':
+                typeIcon = '🧹';
+                break;
+            case 'fueling':
+                typeIcon = '⛽';
+                break;
+            case 'catering':
+                typeIcon = '🍱';
+                break;
+            case 'maintenance':
+                typeIcon = '🔧';
+                break;
+        }
+        
+        // Format shift hours
+        const shiftHours = crew.shift_start && crew.shift_end 
+            ? `${crew.shift_start} - ${crew.shift_end}`
+            : '08:00 - 16:00';
+        
+        // Format tasks completed
+        const tasksCompleted = crew.total_tasks_completed || 0;
+        const tasksToday = crew.tasks_completed_today || 0;
+        
+        return `
+            <div class="crew-card" id="crew-${crew.crew_id}">
+                <div class="crew-card-header">
+                    <div class="crew-avatar">
+                        ${typeIcon}
+                    </div>
+                    <div class="crew-info">
+                        <h4>${crew.full_name}</h4>
+                        <div class="crew-type">${getCrewTypeName(crew.crew_type)}</div>
+                    </div>
+                    ${statusBadge}
                 </div>
-                <div class="crew-status ${crew.status}">
-                    <span>${statusIcon} ${crew.status.replace('_', ' ')}</span>
+                
+                <div class="crew-card-details">
+                    <div class="crew-detail">
+                        <span class="detail-label">ID:</span>
+                        <span class="detail-value">${crew.employee_id || crew.crew_id}</span>
+                    </div>
+                    <div class="crew-detail">
+                        <span class="detail-label">Qualification:</span>
+                        <span class="detail-value">${crew.qualification || 'N/A'}</span>
+                    </div>
+                    <div class="crew-detail">
+                        <span class="detail-label">Contact:</span>
+                        <span class="detail-value">${crew.contact_number || 'N/A'}</span>
+                    </div>
+                    <div class="crew-detail">
+                        <span class="detail-label">Shift:</span>
+                        <span class="detail-value">${shiftHours}</span>
+                    </div>
+                    <div class="crew-detail">
+                        <span class="detail-label">Tasks:</span>
+                        <span class="detail-value">${tasksCompleted} total, ${tasksToday} today</span>
+                    </div>
                 </div>
-            </div>
-            <div class="crew-card-body">
-                <div class="crew-detail">
-                    <label>Type:</label>
-                    <span>${crew.crew_type}</span>
-                </div>
-                <div class="crew-detail">
-                    <label>Qualification:</label>
-                    <span>${crew.qualification || 'N/A'}</span>
-                </div>
-                <div class="crew-detail">
-                    <label>Contact:</label>
-                    <span>${crew.contact_number || 'N/A'}</span>
-                </div>
-                <div class="crew-detail">
-                    <label>Shift:</label>
-                    <span>${crew.shift_start || '08:00'} - ${crew.shift_end || '16:00'}</span>
-                </div>
-                <div class="crew-detail">
-                    <label>Tasks Completed:</label>
-                    <span>${crew.total_tasks_completed || 0}</span>
-                </div>
-            </div>
-            <div class="crew-card-actions">
-                <button class="btn btn-sm btn-primary" onclick="showUpdateCrewModal('${crew.crew_id}')">
-                    ✏️ Edit
-                </button>
-                ${crew.status === 'available' ? `
-                    <button class="btn btn-sm btn-success" onclick="assignCrewToTask('${crew.crew_id}')">
-                        📝 Assign Task
+                
+                <div class="crew-card-actions">
+                    <button class="btn btn-sm btn-outline-primary" onclick="showUpdateCrewModal('${crew.crew_id}')">
+                        ✏️ Edit
                     </button>
-                ` : ''}
-                <button class="btn btn-sm btn-danger" onclick="deleteCrewMember('${crew.crew_id}', '${crew.full_name}')">
-                    🗑️ Delete
-                </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="showAssignTaskModal('${crew.crew_id}', '${crew.full_name}')" ${crew.status !== 'available' ? 'disabled' : ''}>
+                        📋 Assign Task
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteCrew('${crew.crew_id}', '${crew.full_name}')">
+                        🗑️ Delete
+                    </button>
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    }).join('');
 }
 
 // Update statistics
 function updateStatistics() {
-    if (!totalCrewCountEl || !availableCountEl || !onTaskCountEl || !tasksTodayEl) return;
+    const totalCrew = crewMembers.length;
+    const availableCount = crewMembers.filter(c => c.status === 'available').length;
+    const onTaskCount = crewMembers.filter(c => c.status === 'on_task').length;
     
-    const totalCrew = crewData.length;
-    const availableCount = crewData.filter(c => c.status === 'available').length;
-    const onTaskCount = crewData.filter(c => c.status === 'on_task').length;
-    
-    // Calculate today's tasks
-    const today = new Date();
-    const todayTasks = servicesData.filter(s => {
-        const serviceDate = new Date(s.created_at);
-        return serviceDate.toDateString() === today.toDateString();
+    // Calculate tasks today from ground services
+    const today = new Date().toISOString().split('T')[0];
+    const tasksToday = groundServices.filter(service => {
+        const serviceDate = new Date(service.created_at).toISOString().split('T')[0];
+        return serviceDate === today;
     }).length;
     
-    totalCrewCountEl.textContent = totalCrew;
-    availableCountEl.textContent = availableCount;
-    onTaskCountEl.textContent = onTaskCount;
-    tasksTodayEl.textContent = todayTasks;
+    document.getElementById('totalCrewCount').textContent = totalCrew;
+    document.getElementById('availableCount').textContent = availableCount;
+    document.getElementById('onTaskCount').textContent = onTaskCount;
+    document.getElementById('tasksToday').textContent = tasksToday;
 }
 
-// Status icons
-function getStatusIcon(status) {
-    switch(status) {
-        case 'available': return '✅';
-        case 'on_task': return '📝';
-        case 'off_duty': return '🏠';
-        default: return '❓';
-    }
+// Get crew type name
+function getCrewTypeName(type) {
+    const typeNames = {
+        'cleaning': 'Cleaning Crew',
+        'fueling': 'Fueling Crew',
+        'catering': 'Catering Crew',
+        'maintenance': 'Maintenance Crew',
+        'baggage': 'Baggage Crew',
+        'pushback': 'Pushback Crew'
+    };
+    return typeNames[type] || type;
 }
 
-// Type icons
-function getTypeIcon(type) {
-    switch(type) {
-        case 'cleaning': return '🧹';
-        case 'fueling': return '⛽';
-        case 'catering': return '🍽️';
-        case 'maintenance': return '🔧';
-        default: return '👷';
-    }
-}
-
-// Modal functions
-function showAddCrewModal() {
-    if (addCrewModal) {
-        addCrewModal.style.display = 'block';
-    }
-}
-
-function closeAddCrewModal() {
-    if (addCrewModal) {
-        addCrewModal.style.display = 'none';
-        addCrewForm.reset();
-    }
-}
-
-function showUpdateCrewModal(crewId) {
-    const crew = crewData.find(c => c.crew_id === crewId);
-    if (!crew || !updateCrewModal) return;
+// Add Crew Member
+async function addCrewMember() {
+    const form = document.getElementById('addCrewForm');
+    const formData = {
+        full_name: document.getElementById('fullName').value,
+        crew_type: document.getElementById('crewType').value,
+        qualification: document.getElementById('qualification').value,
+        contact_number: document.getElementById('contactNumber').value,
+        status: document.getElementById('status').value
+    };
     
-    document.getElementById('updateCrewId').value = crew.crew_id;
-    document.getElementById('updateStatus').value = crew.status;
-    document.getElementById('updateContactNumber').value = crew.contact_number || '';
-    
-    updateCrewModal.style.display = 'block';
-}
-
-function closeUpdateCrewModal() {
-    if (updateCrewModal) {
-        updateCrewModal.style.display = 'none';
-        updateCrewForm.reset();
+    // Validation
+    if (!formData.full_name || !formData.crew_type || !formData.qualification) {
+        showError('Please fill in all required fields');
+        return;
     }
-}
-
-// Form handlers
-async function handleAddCrew(event) {
-    event.preventDefault();
-    
-    const fullName = document.getElementById('fullName').value;
-    const crewType = document.getElementById('crewType').value;
-    const qualification = document.getElementById('qualification').value;
-    const contactNumber = document.getElementById('contactNumber').value;
-    const status = document.getElementById('status').value;
     
     try {
         const response = await fetch('/api/crew', {
@@ -241,36 +224,43 @@ async function handleAddCrew(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                full_name: fullName,
-                crew_type: crewType,
-                qualification: qualification,
-                contact_number: contactNumber,
-                status: status
-            })
+            body: JSON.stringify(formData)
         });
         
         const data = await response.json();
         
         if (data.success) {
-            showNotification('Crew member added successfully!', 'success');
+            showSuccess('Crew member added successfully!');
             closeAddCrewModal();
             loadCrew();
+            form.reset();
         } else {
-            showNotification(data.message || 'Error adding crew member', 'error');
+            showError('Failed to add crew member: ' + data.message);
         }
     } catch (error) {
-        console.error('Error adding crew:', error);
-        showNotification('Network error adding crew member', 'error');
+        showError('Error adding crew member: ' + error.message);
     }
 }
 
-async function handleUpdateCrew(event) {
-    event.preventDefault();
-    
+// Update Crew Member
+async function updateCrewMember() {
     const crewId = document.getElementById('updateCrewId').value;
-    const status = document.getElementById('updateStatus').value;
-    const contactNumber = document.getElementById('updateContactNumber').value;
+    
+    const updateData = {
+        full_name: document.getElementById('updateFullName').value,
+        crew_type: document.getElementById('updateCrewType').value,
+        qualification: document.getElementById('updateQualification').value,
+        contact_number: document.getElementById('updateContactNumber').value,
+        status: document.getElementById('updateStatus').value,
+        shift_start: document.getElementById('updateShiftStart').value || '08:00',
+        shift_end: document.getElementById('updateShiftEnd').value || '16:00'
+    };
+    
+    // Validation
+    if (!updateData.full_name || !updateData.crew_type || !updateData.qualification) {
+        showError('Please fill in all required fields');
+        return;
+    }
     
     try {
         const response = await fetch(`/api/crew/${crewId}`, {
@@ -278,33 +268,89 @@ async function handleUpdateCrew(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                status: status,
-                contact_number: contactNumber
-            })
+            body: JSON.stringify(updateData)
         });
         
         const data = await response.json();
         
         if (data.success) {
-            showNotification('Crew member updated successfully!', 'success');
+            showSuccess('Crew member updated successfully!');
             closeUpdateCrewModal();
             loadCrew();
         } else {
-            showNotification(data.message || 'Error updating crew member', 'error');
+            showError('Failed to update crew member: ' + data.message);
         }
     } catch (error) {
-        console.error('Error updating crew:', error);
-        showNotification('Network error updating crew member', 'error');
+        showError('Error updating crew member: ' + error.message);
     }
 }
 
-// Delete crew member
-async function deleteCrewMember(crewId, crewName) {
-    if (!confirm(`Are you sure you want to delete ${crewName}?`)) {
+// Assign Task to Crew
+async function assignTask() {
+    const crewId = document.getElementById('assignCrewId').value;
+    
+    const taskData = {
+        service_type: document.getElementById('taskType').value,
+        flight_code: document.getElementById('taskFlightCode').value,
+        scheduled_time: new Date().toISOString(),
+        notes: document.getElementById('taskDescription').value || '',
+        priority: document.getElementById('taskPriority').value,
+        estimated_duration_minutes: parseInt(document.getElementById('taskDuration').value) || 30,
+        assigned_crew: crewId
+    };
+    
+    // Validation
+    if (!taskData.service_type || !taskData.flight_code) {
+        showError('Please fill in all required fields');
         return;
     }
     
+    try {
+        // First create the ground service
+        const serviceResponse = await fetch('/api/ground-services', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(taskData)
+        });
+        
+        const serviceData = await serviceResponse.json();
+        
+        if (serviceData.success) {
+            // Then update crew status to on_task
+            const crewResponse = await fetch(`/api/crew/${crewId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: 'on_task',
+                    tasks_completed_today: (crewMembers.find(c => c.crew_id === crewId)?.tasks_completed_today || 0) + 1,
+                    total_tasks_completed: (crewMembers.find(c => c.crew_id === crewId)?.total_tasks_completed || 0) + 1
+                })
+            });
+            
+            const crewData = await crewResponse.json();
+            
+            if (crewData.success) {
+                showSuccess('Task assigned successfully!');
+                closeAssignTaskModal();
+                loadCrew();
+                loadGroundServices();
+            } else {
+                showError('Task assigned but failed to update crew status: ' + crewData.message);
+            }
+        } else {
+            showError('Failed to create task: ' + serviceData.message);
+        }
+    } catch (error) {
+        showError('Error assigning task: ' + error.message);
+    }
+}
+
+// Delete Crew Member
+async function deleteCrewMember(crewId) {
     try {
         const response = await fetch(`/api/crew/${crewId}`, {
             method: 'DELETE'
@@ -313,85 +359,108 @@ async function deleteCrewMember(crewId, crewName) {
         const data = await response.json();
         
         if (data.success) {
-            showNotification('Crew member deleted successfully!', 'success');
+            showSuccess('Crew member deleted successfully!');
             loadCrew();
         } else {
-            showNotification(data.message || 'Error deleting crew member', 'error');
+            showError('Failed to delete crew member: ' + data.message);
         }
     } catch (error) {
-        console.error('Error deleting crew:', error);
-        showNotification('Network error deleting crew member', 'error');
+        showError('Error deleting crew member: ' + error.message);
     }
 }
 
-// Assign crew to task
-async function assignCrewToTask(crewId) {
-    // Show available services for assignment
-    const availableServices = servicesData.filter(s => s.status === 'pending');
-    
-    if (availableServices.length === 0) {
-        alert('No pending services available for assignment.');
+// Modal Functions
+function showAddCrewModal() {
+    document.getElementById('addCrewModal').style.display = 'block';
+}
+
+function closeAddCrewModal() {
+    document.getElementById('addCrewModal').style.display = 'none';
+}
+
+function showUpdateCrewModal(crewId) {
+    const crew = crewMembers.find(c => c.crew_id === crewId);
+    if (!crew) {
+        showError('Crew member not found');
         return;
     }
     
-    const serviceOptions = availableServices.map(s => 
-        `<option value="${s.service_id}">${s.service_type} - ${s.flight_code} (${s.priority})</option>`
-    ).join('');
+    document.getElementById('updateCrewId').value = crewId;
+    document.getElementById('updateFullName').value = crew.full_name || '';
+    document.getElementById('updateCrewType').value = crew.crew_type || '';
+    document.getElementById('updateQualification').value = crew.qualification || '';
+    document.getElementById('updateContactNumber').value = crew.contact_number || '';
+    document.getElementById('updateStatus').value = crew.status || 'available';
+    document.getElementById('updateShiftStart').value = crew.shift_start || '08:00';
+    document.getElementById('updateShiftEnd').value = crew.shift_end || '16:00';
     
-    const serviceId = prompt(`Select a service to assign:\n\n${serviceOptions}`, availableServices[0].service_id);
+    document.getElementById('updateCrewModal').style.display = 'block';
+}
+
+function closeUpdateCrewModal() {
+    document.getElementById('updateCrewModal').style.display = 'none';
+}
+
+function showAssignTaskModal(crewId, crewName) {
+    const crew = crewMembers.find(c => c.crew_id === crewId);
+    if (!crew || crew.status !== 'available') {
+        showError('Crew member is not available for task assignment');
+        return;
+    }
     
-    if (!serviceId) return;
+    document.getElementById('assignCrewId').value = crewId;
+    document.getElementById('assignCrewName').value = crewName;
     
-    try {
-        const response = await fetch(`/api/crew/${crewId}/assign`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ service_id: serviceId })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showNotification('Crew assigned to task successfully!', 'success');
-            loadCrew();
-            loadGroundServices();
-        } else {
-            showNotification(data.message || 'Error assigning crew', 'error');
-        }
-    } catch (error) {
-        console.error('Error assigning crew:', error);
-        showNotification('Network error assigning crew', 'error');
+    document.getElementById('taskType').value = '';
+    document.getElementById('taskFlightCode').value = '';
+    document.getElementById('taskDescription').value = '';
+    document.getElementById('taskPriority').value = 'medium';
+    document.getElementById('taskDuration').value = '30';
+    
+    document.getElementById('assignTaskModal').style.display = 'block';
+}
+
+function closeAssignTaskModal() {
+    document.getElementById('assignTaskModal').style.display = 'none';
+}
+
+let deleteCrewId = null;
+
+function confirmDeleteCrew(crewId, crewName) {
+    deleteCrewId = crewId;
+    document.getElementById('confirmTitle').textContent = 'Delete Crew Member';
+    document.getElementById('confirmMessage').textContent = `Are you sure you want to delete "${crewName}"? This action cannot be undone.`;
+    document.getElementById('confirmModal').style.display = 'block';
+}
+
+function confirmDelete() {
+    if (deleteCrewId) {
+        deleteCrewMember(deleteCrewId);
+        closeConfirmModal();
     }
 }
 
-// Notification function
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <span>${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()">×</button>
-        </div>
-    `;
-    
-    // Add to body
-    document.body.appendChild(notification);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 5000);
+function closeConfirmModal() {
+    deleteCrewId = null;
+    document.getElementById('confirmModal').style.display = 'none';
 }
 
-// Export functions
-window.loadCrew = loadCrew;
-window.showAddCrewModal = showAddCrewModal;
-window.closeAddCrewModal = closeAddCrewModal;
-window.showUpdateCrewModal = showUpdateCrewModal;
-window.closeUpdateCrewModal = closeUpdateCrewModal;
+
+function showSuccess(message) {
+    alert(message); 
+    console.log('Success:', message);
+}
+
+function showError(message) {
+    alert('Error: ' + message); 
+    console.error('Error:', message);
+}
+
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+};

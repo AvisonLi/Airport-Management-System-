@@ -1,52 +1,45 @@
-// Airport Aircraft Management System - FIXED VERSION
 console.log('Aircraft Management System - Loading...');
 
-// ============================================
-// GLOBAL VARIABLES
-// ============================================
+
 let currentAircraftId = null;
 let selectedFlight = null;
 
-// ============================================
-// INITIALIZATION
-// ============================================
 
-// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM Content Loaded - Aircraft Page');
     initAircraftSystem();
 });
 
-// Main initialization function
+
 function initAircraftSystem() {
     console.log('Initializing Aircraft System...');
     
-    // Check if we're on the aircraft page
+    
     if (!document.querySelector('.aircraft-list')) {
         console.log('Not on aircraft page, skipping initialization');
         return;
     }
     
-    // Debug: Show what's available
+    
     debugPageState();
     
-    // Setup all event listeners
+
     setupEventListeners();
     
     // Initialize stats
     updateMaintenanceStats();
     
-    // Initialize crew system
+
     initCrewAssignment();
     
     console.log('Aircraft System Initialized Successfully');
 }
 
-// Debug function to show current state
+
 function debugPageState() {
     console.log('=== DEBUG INFO ===');
     
-    // Check flight dropdown
+
     const flightSelect = document.getElementById('aircraft-flight-select');
     if (flightSelect) {
         console.log('Flight Select Found:', flightSelect.id);
@@ -58,25 +51,25 @@ function debugPageState() {
         console.error('❌ Flight Select NOT FOUND!');
     }
     
-    // Check aircraft items
+ 
     const aircraftItems = document.querySelectorAll('.aircraft-item');
     console.log('Aircraft Items Found:', aircraftItems.length);
     aircraftItems.forEach(item => {
         console.log(`  Aircraft: ${item.dataset.aircraftId}, Status: ${item.className}`);
     });
     
-    // Check crew elements
+    
     const crewSelect = document.getElementById('crew-member-select');
     console.log('Crew Select Found:', crewSelect ? 'Yes' : 'No');
     
     console.log('=== END DEBUG ===');
 }
 
-// Setup all event listeners
+
 function setupEventListeners() {
     console.log('Setting up event listeners...');
     
-    // Flight selection
+  
     const flightSelect = document.getElementById('aircraft-flight-select');
     if (flightSelect) {
         flightSelect.addEventListener('change', function() {
@@ -86,7 +79,7 @@ function setupEventListeners() {
         });
     }
     
-    // Aircraft type filter
+
     const typeFilter = document.getElementById('aircraft-type-filter');
     if (typeFilter) {
         typeFilter.addEventListener('change', function() {
@@ -94,7 +87,7 @@ function setupEventListeners() {
         });
     }
     
-    // Crew type filter
+
     const crewTypeFilter = document.getElementById('crew-type-select');
     if (crewTypeFilter) {
         crewTypeFilter.addEventListener('change', function() {
@@ -102,22 +95,22 @@ function setupEventListeners() {
         });
     }
     
-    // Assign crew button
+ 
     const assignCrewBtn = document.querySelector('.btn-success[onclick*="assignCrewToTask"]');
     if (assignCrewBtn) {
-        // Remove old onclick and add new event listener
+     
         assignCrewBtn.removeAttribute('onclick');
         assignCrewBtn.addEventListener('click', assignCrewToTask);
     }
     
-    // Refresh maintenance button
+ 
     const refreshBtn = document.querySelector('.btn-primary[onclick*="refreshMaintenanceList"]');
     if (refreshBtn) {
         refreshBtn.removeAttribute('onclick');
         refreshBtn.addEventListener('click', refreshMaintenanceList);
     }
     
-    // Replacement aircraft select
+
     const replacementSelect = document.getElementById('replacement-aircraft-select');
     if (replacementSelect) {
         replacementSelect.addEventListener('change', function() {
@@ -125,22 +118,22 @@ function setupEventListeners() {
         });
     }
     
-    // Confirm swap button
+  
     const confirmSwapBtn = document.getElementById('confirm-swap-btn');
     if (confirmSwapBtn) {
         confirmSwapBtn.addEventListener('click', confirmSwap);
     }
     
-    // Cancel swap button
+    
     const cancelSwapBtn = document.querySelector('button[onclick*="cancelSwap"]');
     if (cancelSwapBtn) {
         cancelSwapBtn.removeAttribute('onclick');
         cancelSwapBtn.addEventListener('click', cancelSwap);
     }
     
-    // Setup click handlers for assign aircraft buttons
+
     document.addEventListener('click', function(e) {
-        // Assign aircraft button
+      
         if (e.target.classList.contains('assign-aircraft-btn')) {
             const aircraftId = e.target.dataset.aircraftId || 
                               e.target.closest('.aircraft-item').dataset.aircraftId;
@@ -149,7 +142,7 @@ function setupEventListeners() {
             }
         }
         
-        // Swap aircraft button
+  
         if (e.target.classList.contains('swap-aircraft-btn')) {
             const aircraftId = e.target.closest('.aircraft-item').dataset.aircraftId;
             if (aircraftId) {
@@ -161,11 +154,6 @@ function setupEventListeners() {
     console.log('Event listeners setup complete');
 }
 
-// ============================================
-// AIRCRAFT ASSIGNMENT FUNCTIONS
-// ============================================
-
-// Handle flight selection
 function onFlightSelected(flightCode) {
     console.log('Flight selected handler:', flightCode);
     
@@ -174,18 +162,18 @@ function onFlightSelected(flightCode) {
         return;
     }
     
-    // Get flight details
+
     const flightSelect = document.getElementById('aircraft-flight-select');
     const flightOption = flightSelect.options[flightSelect.selectedIndex];
     const flightText = flightOption.text;
     
     showMessage(`Selected: ${flightText}`, 'info');
     
-    // Filter aircraft for this flight
+
     filterAircraftForFlight(flightCode);
 }
 
-// Filter aircraft for selected flight
+
 function filterAircraftForFlight(flightCode) {
     const aircraftItems = document.querySelectorAll('.aircraft-item');
     let availableCount = 0;
@@ -194,7 +182,6 @@ function filterAircraftForFlight(flightCode) {
         const isAvailable = item.classList.contains('available');
         const isAssigned = item.classList.contains('assigned');
         
-        // Show available and assigned aircraft
         item.style.display = (isAvailable || isAssigned) ? 'flex' : 'none';
         
         if (isAvailable) availableCount++;
@@ -207,7 +194,6 @@ function filterAircraftForFlight(flightCode) {
     }
 }
 
-// Filter aircraft by type
 function filterAircraftByType(type) {
     console.log('Filtering by type:', type);
     
@@ -224,11 +210,9 @@ function filterAircraftByType(type) {
     });
 }
 
-// Assign aircraft to flight
 function assignAircraft(aircraftId) {
     console.log('Assigning aircraft:', aircraftId);
     
-    // Get selected flight
     const flightSelect = document.getElementById('aircraft-flight-select');
     if (!flightSelect || !flightSelect.value || flightSelect.value === '-- Select Flight --') {
         showMessage('Please select a flight first', 'error');
@@ -238,30 +222,25 @@ function assignAircraft(aircraftId) {
     const flightCode = flightSelect.value;
     const flightText = flightSelect.options[flightSelect.selectedIndex].text;
     
-    // Find aircraft element
     const aircraftElement = document.querySelector(`.aircraft-item[data-aircraft-id="${aircraftId}"]`);
     if (!aircraftElement) {
         showMessage('Aircraft not found', 'error');
         return;
     }
     
-    // Check if aircraft is available
     if (!aircraftElement.classList.contains('available')) {
         showMessage('Aircraft is not available for assignment', 'error');
         return;
     }
     
-    // Update UI
     aircraftElement.classList.remove('available');
     aircraftElement.classList.add('assigned');
     
-    // Update status display
     const statusElement = aircraftElement.querySelector('.aircraft-status');
     if (statusElement) {
         statusElement.innerHTML = `<span class="status-assigned">🛫 Assigned to ${flightCode}</span>`;
     }
     
-    // Update button
     const assignBtn = aircraftElement.querySelector('.assign-aircraft-btn');
     if (assignBtn) {
         assignBtn.remove();
@@ -273,17 +252,13 @@ function assignAircraft(aircraftId) {
         `;
     }
     
-    // Update maintenance stats
     updateMaintenanceStats();
     
-    // Show success message
     showMessage(`Aircraft ${aircraftId} assigned to ${flightText}`, 'success');
     
-    // Send to server (optional)
     sendAssignmentToServer(aircraftId, flightCode);
 }
 
-// Send assignment to server
 async function sendAssignmentToServer(aircraftId, flightCode) {
     try {
         const response = await fetch('/api/aircraft/assign', {
@@ -306,17 +281,12 @@ async function sendAssignmentToServer(aircraftId, flightCode) {
     }
 }
 
-// ============================================
-// AIRCRAFT SWAPPING FUNCTIONS
-// ============================================
 
-// Open swap modal
 function openSwapModal(aircraftId) {
     console.log('Opening swap modal for:', aircraftId);
     
     currentAircraftId = aircraftId;
     
-    // Get aircraft details
     const aircraftElement = document.querySelector(`.aircraft-item[data-aircraft-id="${aircraftId}"]`);
     if (!aircraftElement) return;
     
@@ -324,15 +294,12 @@ function openSwapModal(aircraftId) {
     const flightSelect = document.getElementById('aircraft-flight-select');
     const flightText = flightSelect ? flightSelect.options[flightSelect.selectedIndex].text : 'No flight selected';
     
-    // Update modal display
     document.getElementById('current-aircraft-id').textContent = aircraftId;
     document.getElementById('current-aircraft-details').textContent = aircraftType;
     document.getElementById('current-flight-info').textContent = flightText;
     
-    // Populate replacement options
     populateReplacementAircraft(aircraftId);
     
-    // Show swap card
     const swapCard = document.getElementById('swap-card');
     if (swapCard) {
         swapCard.style.display = 'block';
@@ -342,15 +309,12 @@ function openSwapModal(aircraftId) {
     showMessage(`Swap mode activated for ${aircraftId}`, 'info');
 }
 
-// Populate replacement aircraft dropdown
 function populateReplacementAircraft(currentAircraftId) {
     const selectElement = document.getElementById('replacement-aircraft-select');
     if (!selectElement) return;
     
-    // Clear existing options
     selectElement.innerHTML = '<option value="">-- Select Replacement --</option>';
     
-    // Get all available aircraft except current one
     const availableAircraft = document.querySelectorAll('.aircraft-item.available');
     
     if (availableAircraft.length === 0) {
@@ -370,7 +334,6 @@ function populateReplacementAircraft(currentAircraftId) {
     });
 }
 
-// Handle replacement selection
 function onReplacementSelected(aircraftId) {
     const replacementCard = document.getElementById('replacement-aircraft-card');
     const confirmBtn = document.getElementById('confirm-swap-btn');
@@ -390,7 +353,6 @@ function onReplacementSelected(aircraftId) {
     }
 }
 
-// Confirm swap
 function confirmSwap() {
     if (!currentAircraftId) {
         showMessage('No aircraft selected for swap', 'error');
@@ -405,7 +367,6 @@ function confirmSwap() {
         return;
     }
     
-    // Get the aircraft elements
     const currentAircraft = document.querySelector(`.aircraft-item[data-aircraft-id="${currentAircraftId}"]`);
     const replacementAircraft = document.querySelector(`.aircraft-item[data-aircraft-id="${replacementId}"]`);
     
@@ -414,24 +375,20 @@ function confirmSwap() {
         return;
     }
     
-    // Perform the swap
     swapAircraftStatus(currentAircraftId, replacementId);
     
-    // Update UI
     updateMaintenanceStats();
     cancelSwap();
     
     showMessage(`Aircraft swapped: ${currentAircraftId} ↔ ${replacementId}`, 'success');
 }
 
-// Swap aircraft status
 function swapAircraftStatus(currentId, replacementId) {
     const currentAircraft = document.querySelector(`.aircraft-item[data-aircraft-id="${currentId}"]`);
     const replacementAircraft = document.querySelector(`.aircraft-item[data-aircraft-id="${replacementId}"]`);
     
     if (!currentAircraft || !replacementAircraft) return;
     
-    // Current aircraft becomes available
     currentAircraft.classList.remove('assigned');
     currentAircraft.classList.add('available');
     
@@ -440,7 +397,6 @@ function swapAircraftStatus(currentId, replacementId) {
         currentStatus.innerHTML = '<span class="status-available">✅ Available</span>';
     }
     
-    // Remove swap button, add assign button
     const currentSwapBtn = currentAircraft.querySelector('.swap-aircraft-btn');
     if (currentSwapBtn) {
         currentSwapBtn.remove();
@@ -452,7 +408,6 @@ function swapAircraftStatus(currentId, replacementId) {
         `;
     }
     
-    // Replacement aircraft becomes assigned
     replacementAircraft.classList.remove('available');
     replacementAircraft.classList.add('assigned');
     
@@ -461,7 +416,6 @@ function swapAircraftStatus(currentId, replacementId) {
         replacementStatus.innerHTML = '<span class="status-assigned">🛫 Assigned</span>';
     }
     
-    // Remove assign button, add swap button
     const replacementAssignBtn = replacementAircraft.querySelector('.assign-aircraft-btn');
     if (replacementAssignBtn) {
         replacementAssignBtn.remove();
@@ -474,7 +428,6 @@ function swapAircraftStatus(currentId, replacementId) {
     }
 }
 
-// Cancel swap
 function cancelSwap() {
     currentAircraftId = null;
     
@@ -491,11 +444,7 @@ function cancelSwap() {
     if (confirmBtn) confirmBtn.disabled = true;
 }
 
-// ============================================
-// MAINTENANCE TRACKING FUNCTIONS
-// ============================================
 
-// Update maintenance statistics
 function updateMaintenanceStats() {
     console.log('Updating maintenance stats...');
     
@@ -516,7 +465,7 @@ function updateMaintenanceStats() {
     
     console.log('Stats - Maintenance:', inMaintenance, 'Available:', available, 'In Service:', inService);
     
-    // Update display
+
     const updateStat = (id, value) => {
         const element = document.getElementById(id);
         if (element) element.textContent = value;
@@ -527,46 +476,40 @@ function updateMaintenanceStats() {
     updateStat('service-count', inService);
 }
 
-// Refresh maintenance list
+
 function refreshMaintenanceList() {
     console.log('Refreshing maintenance list...');
     
-    // Simulate API call
+
     setTimeout(() => {
         updateMaintenanceStats();
         showMessage('Maintenance list refreshed', 'success');
     }, 500);
 }
 
-// ============================================
-// CREW ASSIGNMENT FUNCTIONS - FIXED
-// ============================================
-
-// Initialize crew assignment system
 function initCrewAssignment() {
     console.log('Initializing crew assignment...');
     
-    // Populate crew dropdown
+
     populateCrewDropdown();
     
-    // Populate aircraft dropdown for tasks
+
     populateTaskAircraftDropdown();
     
     console.log('Crew assignment system ready');
 }
 
-// Populate crew dropdown
+
 function populateCrewDropdown() {
     const crewSelect = document.getElementById('crew-member-select');
     if (!crewSelect) {
         console.error('Crew select element not found');
         return;
     }
-    
-    // Start with default option
+
     crewSelect.innerHTML = '<option value="">-- Select Crew Member --</option>';
     
-    // Add crew options from server data (embedded in HTML)
+
     const crewData = [
         { id: 'CC-001', name: 'Michael Chen', type: 'Cleaning Crew' },
         { id: 'FC-001', name: 'David Wong', type: 'Fueling Crew' },
@@ -585,7 +528,6 @@ function populateCrewDropdown() {
     console.log('Crew dropdown populated with', crewData.length, 'options');
 }
 
-// Populate aircraft dropdown for tasks
 function populateTaskAircraftDropdown() {
     const aircraftSelect = document.getElementById('task-aircraft-select');
     if (!aircraftSelect) return;
@@ -606,7 +548,7 @@ function populateTaskAircraftDropdown() {
     console.log('Task aircraft dropdown populated with', aircraftItems.length, 'options');
 }
 
-// Filter crew by type
+
 function filterCrewByType(type) {
     const crewSelect = document.getElementById('crew-member-select');
     if (!crewSelect) return;
@@ -623,14 +565,13 @@ function filterCrewByType(type) {
             option.style.display = 'none';
         }
     }
-    
-    // Reset to first option if current selection is hidden
+
     if (crewSelect.value && options[crewSelect.selectedIndex].style.display === 'none') {
         crewSelect.value = '';
     }
 }
 
-// Assign crew to task
+
 function assignCrewToTask() {
     console.log('Assigning crew to task...');
     
@@ -642,7 +583,6 @@ function assignCrewToTask() {
     const aircraftId = aircraftSelect ? aircraftSelect.value : null;
     const description = taskDescription ? taskDescription.value.trim() : '';
     
-    // Validation
     if (!crewId) {
         showMessage('Please select a crew member', 'error');
         return;
@@ -658,37 +598,30 @@ function assignCrewToTask() {
         return;
     }
     
-    // Get selected values
+   
     const crewText = crewSelect.options[crewSelect.selectedIndex].text;
     const aircraftText = aircraftSelect.options[aircraftSelect.selectedIndex].text;
     
-    // Show success message
+
     showMessage(`Crew assigned: ${crewText} to ${description} on ${aircraftText}`, 'success');
     
-    // Add to task log (simulated)
+   
     addToTaskLog(crewText, aircraftText, description);
     
-    // Clear form
+
     if (crewSelect) crewSelect.value = '';
     if (aircraftSelect) aircraftSelect.value = '';
     if (taskDescription) taskDescription.value = '';
 }
 
-// Add task to log
 function addToTaskLog(crew, aircraft, task) {
-    // This would normally add to a database
     console.log('Task logged:', { crew, aircraft, task, timestamp: new Date().toISOString() });
 }
 
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
 
-// Show message/notification
 function showMessage(message, type = 'info') {
     console.log(`${type.toUpperCase()}: ${message}`);
     
-    // Create notification element
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.innerHTML = `
@@ -698,28 +631,21 @@ function showMessage(message, type = 'info') {
         </div>
     `;
     
-    // Add to page
     const container = document.querySelector('.main-content') || document.body;
     container.insertBefore(notification, container.firstChild);
     
-    // Auto-remove after 5 seconds
     setTimeout(() => {
         if (notification.parentNode) {
             notification.remove();
         }
     }, 5000);
     
-    // Close button handler
     notification.querySelector('.notification-close').addEventListener('click', () => {
         notification.remove();
     });
 }
 
-// ============================================
-// GLOBAL EXPORTS
-// ============================================
 
-// Make functions available globally
 window.initAircraftSystem = initAircraftSystem;
 window.assignAircraft = assignAircraft;
 window.openSwapModal = openSwapModal;

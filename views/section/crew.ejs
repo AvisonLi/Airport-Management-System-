@@ -168,38 +168,146 @@
     </div>
 
     <!-- Update Crew Modal -->
-    <div id="updateCrewModal" class="modal">
-        <div class="modal-content">
-            <h2>Update Crew Member</h2>
-            <form id="updateCrewForm">
-                <input type="hidden" id="updateCrewId">
-                
-                <div class="form-group">
-                    <label>Status</label>
-                    <select id="updateStatus">
-                        <option value="available">Available</option>
-                        <option value="on_task">On Task</option>
-                        <option value="off_duty">Off Duty</option>
-                    </select>
-                </div>
+<div id="updateCrewModal" class="modal">
+    <div class="modal-content">
+        <h2>Update Crew Member</h2>
+        <form id="updateCrewForm">
+            <input type="hidden" id="updateCrewId">
+            
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="updateFullName" required>
+            </div>
 
-                <div class="form-group">
-                    <label>Contact Number</label>
-                    <input type="tel" id="updateContactNumber">
-                </div>
+            <div class="form-group">
+                <label>Crew Type</label>
+                <select id="updateCrewType" required>
+                    <option value="">Select type...</option>
+                    <option value="cleaning">Cleaning Crew</option>
+                    <option value="fueling">Fueling Crew</option>
+                    <option value="catering">Catering Crew</option>
+                    <option value="maintenance">Maintenance Crew</option>
+                </select>
+            </div>
 
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeUpdateCrewModal()">
-                        Cancel
-                    </button>
-                    <button type="submit" class="btn btn-success">
-                        Update
-                    </button>
-                </div>
-            </form>
+            <div class="form-group">
+                <label>Qualification</label>
+                <input type="text" id="updateQualification" required placeholder="e.g., Level 2 Certified">
+            </div>
+
+            <div class="form-group">
+                <label>Contact Number</label>
+                <input type="tel" id="updateContactNumber" required>
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                <select id="updateStatus">
+                    <option value="available">Available</option>
+                    <option value="on_task">On Task</option>
+                    <option value="off_duty">Off Duty</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Shift Start</label>
+                <input type="time" id="updateShiftStart" value="08:00">
+            </div>
+
+            <div class="form-group">
+                <label>Shift End</label>
+                <input type="time" id="updateShiftEnd" value="16:00">
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeUpdateCrewModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-success">
+                    Update Crew Member
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Assign Task Modal -->
+<div id="assignTaskModal" class="modal">
+    <div class="modal-content">
+        <h2>Assign Task to Crew Member</h2>
+        <form id="assignTaskForm">
+            <input type="hidden" id="assignCrewId">
+            
+            <div class="form-group">
+                <label>Crew Member</label>
+                <input type="text" id="assignCrewName" readonly>
+            </div>
+
+            <div class="form-group">
+                <label>Task Type *</label>
+                <select id="taskType" required>
+                    <option value="">Select task type...</option>
+                    <option value="cleaning">Aircraft Cleaning</option>
+                    <option value="fueling">Aircraft Fueling</option>
+                    <option value="catering">Catering Service</option>
+                    <option value="maintenance">Maintenance Check</option>
+                    <option value="baggage">Baggage Handling</option>
+                    <option value="pushback">Aircraft Pushback</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Flight Code *</label>
+                <input type="text" id="taskFlightCode" required placeholder="e.g., HKA101">
+            </div>
+
+            <div class="form-group">
+                <label>Task Description</label>
+                <textarea id="taskDescription" rows="3" placeholder="Describe the task..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Priority</label>
+                <select id="taskPriority">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Estimated Duration (minutes)</label>
+                <input type="number" id="taskDuration" value="30" min="5" max="240">
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeAssignTaskModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    Assign Task
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <h3 id="confirmTitle">Confirm Action</h3>
+        <p id="confirmMessage">Are you sure you want to perform this action?</p>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeConfirmModal()">
+                Cancel
+            </button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">
+                Delete
+            </button>
         </div>
     </div>
-
+</div>
     <script src="/js/crew.js"></script>
 </body>
 </html>
