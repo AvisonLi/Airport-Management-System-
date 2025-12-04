@@ -134,7 +134,7 @@ app.get('/', (req, res) => {
     if (req.session.user.role === 'passenger') {
       res.redirect('/passenger');
     } else {
-      res.redirect('/dashboard');
+      res.redirect('//section/passengers');
     }
   } else {
     res.redirect('/login');
@@ -151,7 +151,7 @@ app.get('/login', (req, res) => {
     if (req.session.user.role === 'passenger') {
       return res.redirect('/passenger');
     }
-    return res.redirect('/dashboard');
+    return res.redirect('/section/passengers');
   }
   
   res.render('login', {
@@ -214,7 +214,7 @@ app.post('/login', async (req, res) => {
     if (user.role === 'passenger') {
       res.redirect('/passenger');
     } else {
-      res.redirect('/dashboard');
+      res.redirect('section/passengers');
     }
   } catch (error) {
     console.error('Login error:', error);
@@ -343,7 +343,7 @@ app.get('/logout', (req, res) => {
 // ============================================
 // ADMIN DASHBOARD
 // ============================================
-app.get('/dashboard', requireAuth, async (req, res) => {
+app.get('section/passengers', requireAuth, async (req, res) => {
   if (req.session.user.role === 'passenger') {
     return res.redirect('/passenger');
   }
@@ -393,7 +393,7 @@ app.get('/dashboard', requireAuth, async (req, res) => {
       maintenanceStats
     });
   } catch (error) {
-    console.error('Error loading dashboard:', error);
+    console.error('Error loading :', error);
     res.status(500).send('Server error');
   }
 });
@@ -455,7 +455,7 @@ app.get('/checkin', requireAuth, (req, res) => {
       activeTab: 'checkin-page'  
     });
   } else {
-    res.redirect('/dashboard');
+    res.redirect('/section/passengers');
   }
 });
 
@@ -1357,7 +1357,7 @@ connectDB()
 // PASSENGER PORTAL TAB ROUTES
 // ============================================
 
-app.get('/passenger/dashboard', requirePassengerAuth, async (req, res) => {
+app.get('section/passengers', requirePassengerAuth, async (req, res) => {
   try {
     const bookingsCollection = getCollection(collections.bookings);
     const flightsCollection = getCollection(collections.flights);
@@ -1442,7 +1442,7 @@ app.get('/passenger/dashboard', requirePassengerAuth, async (req, res) => {
       activeTab: 'dashboard'
     });
   } catch (error) {
-    console.error('Error loading passenger dashboard:', error);
+    console.error('Error loading passenger :', error);
     res.status(500).send('Server error');
   }
 });
@@ -1945,12 +1945,7 @@ app.get('/api/passenger/export-data', requirePassengerAuth, async (req, res) => 
   }
 });
 
-// ============================================
-// PASSENGER PORTAL - Redirect to dashboard
-// ============================================
-app.get('/passenger', requirePassengerAuth, (req, res) => {
-  res.redirect('/passenger/dashboard');
-});
+
 /// ============================================
 // VIEW SINGLE BOARDING PASS BY REFERENCE 
 // ============================================
@@ -2049,5 +2044,1567 @@ res.render('boarding-pass-single', {
   } catch (error) {
     console.error('Error loading boarding pass:', error);
     res.status(500).send('An error occurred while loading the boarding pass.');
+  }
+});
+app.delete('/api/ground-services/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const groundServicesCollection = getCollection(collections.groundServices);
+    
+    const result = await groundServicesCollection.deleteOne({ 
+      service_id: req.params.id 
+    });
+    
+    if (result.deletedCount === 0) {
+      return res.json({ success: false, message: 'Service not found' });
+    }
+    
+    res.json({ success: true, message: 'Ground service deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting ground service:', error);
+    res.json({ success: false, message: 'Error deleting ground service' });
+  }
+});
+// Get today's flights
+app.get('/api/flights/today', async (req, res) => {
+  const flightsCollection = getCollection(collections.flights);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  const flights = await flightsCollection.find({
+    flight_date: { $gte: today, $lt: tomorrow }
+  }).toArray();
+  
+  res.json({ success: true, flights });
+});
+
+// Get flight by flight code
+app.get('/api/flights/:code', async (req, res) => {
+  const flightsCollection = getCollection(collections.flights);
+  const flight = await flightsCollection.findOne({ 
+    flight_code: req.params.code 
+  });
+  
+  if (flight) {
+    res.json({ success: true, flight });
+  } else {
+    res.json({ success: false, message: 'Flight not found' });
+  }
+});
+
+// Get flights by gate
+app.get('/api/flights/gate/:gate', async (req, res) => {
+  const flightsCollection = getCollection(collections.flights);
+  const flights = await flightsCollection.find({ 
+    gate: req.params.gate 
+  }).toArray();
+  
+  res.json({ success: true, flights });
+});
+
+// Get boarding pass by ID or barcode
+app.get('/api/boarding-pass/:id', async (req, res) => {
+  const boardingPassCollection = getCollection(collections.boardingPasses);
+  const boardingPass = await boardingPassCollection.findOne({
+    $or: [
+      { boarding_pass_id: req.params.id },
+      { barcode: req.params.id }
+    ]
+  });
+  
+  if (boardingPass) {
+    res.json({ success: true, boardingPass });
+  } else {
+    res.json({ success: false, message: 'Boarding pass not found' });
+  }
+});
+
+// Confirm boarding
+app.post('/api/boarding/confirm', async (req, res) => {
+  const { boarding_pass_id, passenger_id } = req.body;
+  
+  const boardingPassCollection = getCollection(collections.boardingPasses);
+  const boardingLogsCollection = getCollection(collections.boardingLogs);
+  
+  // Update boarding pass status
+  await boardingPassCollection.updateOne(
+    { boarding_pass_id: boarding_pass_id },
+    { $set: { status: 'boarded', updated_at: new Date() } }
+  );
+  
+  // Create boarding log
+  const boardingPass = await boardingPassCollection.findOne({ boarding_pass_id });
+  await boardingLogsCollection.insertOne({
+    log_id: generateId('LOG-'),
+    passenger_id: passenger_id,
+    booking_reference: boardingPass.booking_reference,
+    flight_code: boardingPass.flight_code,
+    boarding_time: new Date(),
+    gate: boardingPass.gate,
+    boarding_status: 'boarded',
+    created_at: new Date(),
+    updated_at: new Date()
+  });
+  
+  res.json({ success: true, message: 'Boarding confirmed' });
+});
+
+// Get boarding logs for a flight
+app.get('/api/boarding-logs/:flightCode', async (req, res) => {
+  const boardingLogsCollection = getCollection(collections.boardingLogs);
+  const logs = await boardingLogsCollection.find({ 
+    flight_code: req.params.flightCode 
+  }).sort({ boarding_time: -1 }).limit(20).toArray();
+  
+  res.json({ success: true, logs });
+});
+
+// Update flight status
+app.put('/api/flights/:code/status', async (req, res) => {
+  const { status } = req.body;
+  const flightsCollection = getCollection(collections.flights);
+  
+  await flightsCollection.updateOne(
+    { flight_code: req.params.code },
+    { $set: { flight_status: status, updated_at: new Date() } }
+  );
+  
+  res.json({ success: true, message: 'Flight status updated' });
+});
+// ============================================
+// PASSENGER SERVICES API ROUTES (ADMIN)
+// ============================================
+
+// Get passenger service statistics
+app.get('/api/section/stats', requireAdminAuth, async (req, res) => {
+  try {
+    const bookingsCollection = getCollection(collections.bookings);
+    const flightsCollection = getCollection(collections.flights);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // Get today's bookings
+    const bookings = await bookingsCollection.find({
+      flight_date: { $gte: today, $lt: tomorrow }
+    }).toArray();
+    
+    const stats = {
+      totalPassengers: bookings.length,
+      checkedIn: bookings.filter(b => b.booking_status === 'checked_in').length,
+      boarded: bookings.filter(b => b.booking_status === 'boarded').length,
+      pending: bookings.filter(b => b.booking_status === 'pending').length
+    };
+    
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error loading passenger stats:', error);
+    res.json({ success: false, message: 'Error loading statistics' });
+  }
+});
+
+// Get all passengers with booking details
+app.get('/api/section/passengers', requireAdminAuth, async (req, res) => {
+  try {
+    const bookingsCollection = getCollection(collections.bookings);
+    const usersCollection = getCollection(collections.users);
+    
+    // Get all bookings
+    const bookings = await bookingsCollection.find({}).sort({ booking_date: -1 }).limit(100).toArray();
+    
+    // Get user details for each booking
+    const passengersWithDetails = await Promise.all(bookings.map(async (booking) => {
+      const user = await usersCollection.findOne({ user_id: booking.passenger_id });
+      
+      return {
+        passenger_id: booking.passenger_id,
+        full_name: booking.passenger_name,
+        passport_number: user?.passport_number || 'N/A',
+        flight_code: booking.flight_code,
+        seat_number: booking.seat_number || 'N/A',
+        status: booking.booking_status,
+        check_in_time: booking.check_in_time,
+        booking_reference: booking.booking_reference
+      };
+    }));
+    
+    res.json({ success: true, passengers: passengersWithDetails });
+  } catch (error) {
+    console.error('Error loading passengers:', error);
+    res.json({ success: false, message: 'Error loading passengers' });
+  }
+});
+
+// Get all bookings - FIXED VERSION
+app.get('/api/passenger-services/bookings', requireAdminAuth, async (req, res) => {
+  try {
+    const bookingsCollection = getCollection(collections.bookings);
+    const usersCollection = getCollection(collections.users);
+    const flightsCollection = getCollection(collections.flights);
+    
+    // Get all bookings WITHOUT limit
+    const bookings = await bookingsCollection.find({}).sort({ booking_date: -1 }).toArray();
+    
+    // Get additional details for each booking
+    const bookingsWithDetails = await Promise.all(bookings.map(async (booking) => {
+      const user = await usersCollection.findOne({ user_id: booking.passenger_id });
+      const flight = await flightsCollection.findOne({ flight_code: booking.flight_code });
+      
+      // Format booking data
+      return {
+        booking_id: booking.booking_id || `BKG-${Date.now()}`,
+        booking_reference: booking.booking_reference || 'N/A',
+        passenger_name: booking.passenger_name || user?.full_name || 'Unknown',
+        flight_code: booking.flight_code || 'N/A',
+        flight_date: booking.flight_date || new Date(),
+        seat_number: booking.seat_number || 'N/A',
+        cabin_class: booking.cabin_class || 'Economy',
+        booking_status: booking.booking_status || 'pending',
+        payment_status: booking.payment_status || (booking.total_amount > 0 ? 'paid' : 'unpaid'),
+        total_amount: booking.total_amount || 0,
+        check_in_time: booking.check_in_time,
+        baggage_type: booking.baggage_type || 'none',
+        baggage_weight: booking.baggage_weight || 0,
+        created_at: booking.created_at || new Date()
+      };
+    }));
+    
+    res.json({ success: true, bookings: bookingsWithDetails });
+  } catch (error) {
+    console.error('Error loading bookings:', error);
+    res.json({ 
+      success: false, 
+      message: 'Error loading bookings',
+      error: error.message 
+    });
+  }
+});
+
+// Get passengers for a specific flight
+app.get('/api/section/flights/:code/passengers', requireAdminAuth, async (req, res) => {
+  try {
+    const bookingsCollection = getCollection(collections.bookings);
+    const usersCollection = getCollection(collections.users);
+    
+    const bookings = await bookingsCollection.find({ 
+      flight_code: req.params.code 
+    }).toArray();
+    
+    const passengers = await Promise.all(bookings.map(async (booking) => {
+      const user = await usersCollection.findOne({ user_id: booking.passenger_id });
+      
+      return {
+        full_name: booking.passenger_name,
+        seat_number: booking.seat_number,
+        cabin_class: booking.cabin_class,
+        status: booking.booking_status,
+        check_in_time: booking.check_in_time,
+        passport_number: user?.passport_number
+      };
+    }));
+    
+    res.json({ success: true, passengers });
+  } catch (error) {
+    console.error('Error loading flight passengers:', error);
+    res.json({ success: false, message: 'Error loading flight passengers' });
+  }
+});
+
+// Add new passenger (admin)
+app.post('/api/section/passengers', requireAdminAuth, async (req, res) => {
+  try {
+    const { first_name, last_name, passport_number, nationality, date_of_birth, email, phone_number } = req.body;
+    
+    if (!first_name || !last_name || !passport_number || !nationality || !date_of_birth || !email) {
+      return res.json({ success: false, message: 'Missing required fields' });
+    }
+    
+    const usersCollection = getCollection(collections.users);
+    
+    // Check if passenger already exists
+    const existingPassenger = await usersCollection.findOne({
+      $or: [
+        { passport_number: passport_number },
+        { email: email }
+      ]
+    });
+    
+    if (existingPassenger) {
+      return res.json({ success: false, message: 'Passenger with this passport or email already exists' });
+    }
+    
+    const newPassenger = {
+      user_id: generateId('USR-PASS-'),
+      username: email.split('@')[0],
+      email: email,
+      password_hash: '', // Will be set by passenger
+      full_name: `${first_name} ${last_name}`,
+      first_name: first_name,
+      last_name: last_name,
+      passport_number: passport_number,
+      phone_number: phone_number || '',
+      date_of_birth: new Date(date_of_birth),
+      nationality: nationality,
+      avatar: '👤',
+      role: 'passenger',
+      frequent_flyer_number: `FF${Date.now()}`,
+      preferences: {
+        seat_preference: 'any',
+        meal_preference: 'regular',
+        special_assistance: []
+      },
+      status: 'active',
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+    
+    await usersCollection.insertOne(newPassenger);
+    
+    res.json({ 
+      success: true, 
+      message: 'Passenger added successfully',
+      passenger: newPassenger 
+    });
+  } catch (error) {
+    console.error('Error adding passenger:', error);
+    res.json({ success: false, message: 'Error adding passenger' });
+  }
+});
+
+// Update passenger
+app.put('/api/section/passengers/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const { first_name, last_name, passport_number, status } = req.body;
+    const usersCollection = getCollection(collections.users);
+    const bookingsCollection = getCollection(collections.bookings);
+    
+    const updateData = { updated_at: new Date() };
+    
+    if (first_name || last_name) {
+      updateData.full_name = `${first_name || ''} ${last_name || ''}`.trim();
+      if (first_name) updateData.first_name = first_name;
+      if (last_name) updateData.last_name = last_name;
+    }
+    
+    if (passport_number) updateData.passport_number = passport_number;
+    
+    // Update user
+    await usersCollection.updateOne(
+      { user_id: req.params.id },
+      { $set: updateData }
+    );
+    
+    // Update booking status if provided
+    if (status) {
+      await bookingsCollection.updateMany(
+        { passenger_id: req.params.id },
+        { $set: { booking_status: status } }
+      );
+    }
+    
+    res.json({ success: true, message: 'Passenger updated successfully' });
+  } catch (error) {
+    console.error('Error updating passenger:', error);
+    res.json({ success: false, message: 'Error updating passenger' });
+  }
+});
+
+// Delete passenger 
+app.delete('/api/passenger-services/passengers/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const usersCollection = getCollection(collections.users);
+    const bookingsCollection = getCollection(collections.bookings);
+    const boardingPassCollection = getCollection(collections.boardingPasses);
+    const baggageCollection = getCollection(collections.baggage);
+    
+    const passengerId = req.params.id;
+    
+    console.log(`Deleting passenger ${passengerId} (NO RESTRICTIONS APPLIED)`);
+    
+    // 1. Delete user - NO RESTRICTIONS
+    const userResult = await usersCollection.deleteOne({ user_id: passengerId });
+    
+    if (userResult.deletedCount === 0) {
+      // Try to find by _id if not found by user_id
+      try {
+        const userByObjId = await usersCollection.findOne({ _id: new ObjectId(passengerId) });
+        if (userByObjId) {
+          await usersCollection.deleteOne({ _id: new ObjectId(passengerId) });
+          console.log(`Deleted passenger by ObjectId: ${passengerId}`);
+        }
+      } catch (objIdError) {
+        // Not an ObjectId, continue
+      }
+    }
+    
+    // 2. Delete ALL associated data - NO RESTRICTIONS
+    await bookingsCollection.deleteMany({ passenger_id: passengerId });
+    await boardingPassCollection.deleteMany({ passenger_id: passengerId });
+    await baggageCollection.deleteMany({ passenger_id: passengerId });
+    
+    res.json({ 
+      success: true, 
+      message: 'Passenger and all associated data deleted successfully (no restrictions applied)',
+      deleted: {
+        user: userResult.deletedCount,
+        bookings: await bookingsCollection.countDocuments({ passenger_id: passengerId }),
+        boardingPasses: await boardingPassCollection.countDocuments({ passenger_id: passengerId }),
+        baggage: await baggageCollection.countDocuments({ passenger_id: passengerId })
+      }
+    });
+  } catch (error) {
+    console.error('Error deleting passenger:', error);
+    res.json({ 
+      success: false, 
+      message: 'Error deleting passenger: ' + error.message,
+      error: error.toString()
+    });
+  }
+});
+// Manual check-in by admin
+app.post('/api/section/manual-checkin', requireAdminAuth, async (req, res) => {
+  try {
+    const { booking_reference, passenger_name, flight_code, seat_number, notes } = req.body;
+    
+    if (!booking_reference || !passenger_name || !flight_code || !seat_number) {
+      return res.json({ success: false, message: 'Missing required fields' });
+    }
+    
+    const bookingsCollection = getCollection(collections.bookings);
+    const flightsCollection = getCollection(collections.flights);
+    const boardingPassCollection = getCollection(collections.boardingPasses);
+    
+    // Find booking
+    const booking = await bookingsCollection.findOne({
+      booking_reference: booking_reference.toUpperCase()
+    });
+    
+    if (!booking) {
+      return res.json({ success: false, message: 'Booking not found' });
+    }
+    
+    // Get flight details
+    const flight = await flightsCollection.findOne({ flight_code: flight_code });
+    if (!flight) {
+      return res.json({ success: false, message: 'Flight not found' });
+    }
+    
+    // Calculate boarding time
+    const departureTime = flight.scheduled_departure || '';
+    const boardingTime = calculateBoardingTime(departureTime);
+    
+    // Update booking
+    await bookingsCollection.updateOne(
+      { booking_reference: booking_reference },
+      {
+        $set: {
+          seat_number: seat_number,
+          booking_status: 'checked_in',
+          check_in_time: new Date(),
+          updated_at: new Date()
+        }
+      }
+    );
+    
+    // Create boarding pass
+    const barcode = `BP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const boardingPassId = `BP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    
+    await boardingPassCollection.insertOne({
+      boarding_pass_id: boardingPassId,
+      barcode: barcode,
+      booking_reference: booking_reference,
+      passenger_id: booking.passenger_id,
+      flight_code: flight_code,
+      flight_date: flight.flight_date || new Date(),
+      departure_time: departureTime,
+      gate: flight.gate || 'TBA',
+      boarding_time: boardingTime,
+      passenger_name: passenger_name,
+      passport_number: booking.passport_number || '',
+      seat_number: seat_number,
+      cabin_class: booking.cabin_class || 'economy',
+      status: 'issued',
+      baggage_tag_number: booking.baggage_tag_number,
+      baggage_weight: booking.baggage_weight || 0,
+      generated_at: new Date(),
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+    
+    // Update flight checked-in count
+    await flightsCollection.updateOne(
+      { flight_code: flight_code },
+      { $inc: { total_checked_in: 1 }, $set: { updated_at: new Date() } }
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Manual check-in completed successfully' 
+    });
+  } catch (error) {
+    console.error('Error during manual check-in:', error);
+    res.json({ success: false, message: 'Error during manual check-in' });
+  }
+});
+// ============================================
+// PASSENGER SERVICES ADMIN ROUTE
+// ============================================
+app.get('/section/passengers', requireAdminAuth, async (req, res) => {
+    try {
+        const flightsCollection = getCollection(collections.flights);
+        const bookingsCollection = getCollection(collections.bookings);
+        
+        // Get all flights with booking counts
+        const flights = await flightsCollection.find({}).toArray();
+        
+        // Get booking counts for each flight
+        const flightsWithCounts = await Promise.all(flights.map(async (flight) => {
+            const bookedCount = await bookingsCollection.countDocuments({
+                flight_code: flight.flight_code,
+                booking_status: { $ne: 'cancelled' }
+            });
+            
+            const checkedInCount = await bookingsCollection.countDocuments({
+                flight_code: flight.flight_code,
+                booking_status: 'checked_in'
+            });
+            
+            return {
+                code: flight.flight_code,
+                route: flight.route_display || `${flight.origin_airport} → ${flight.destination_airport}`,
+                departure: flight.scheduled_departure || 'N/A',
+                gate: flight.gate || 'TBA',
+                aircraft: flight.aircraft_id || 'N/A',
+                status: flight.flight_status || 'scheduled',
+                total_seats: flight.total_seats || 180,
+                total_booked: bookedCount,
+                total_checked_in: checkedInCount || flight.total_checked_in || 0
+            };
+        }));
+        
+        res.render('section/passengers', {
+            title: 'Passenger Services - Admin',
+            user: req.session.user,
+            flights: flightsWithCounts
+        });
+    } catch (error) {
+        console.error('Error loading passenger services page:', error);
+        res.status(500).send('Error loading passenger services page');
+    }
+});
+// Delete passenger route - FIXED: This already exists but ensure it's working
+app.delete('/api/section/passengers/:id', requireAdminAuth, async (req, res) => {
+    try {
+        const usersCollection = getCollection(collections.users);
+        const bookingsCollection = getCollection(collections.bookings);
+        
+        // Check if passenger has active bookings
+        const activeBookings = await bookingsCollection.countDocuments({
+            passenger_id: req.params.id,
+            booking_status: { $in: ['pending', 'confirmed', 'checked_in'] }
+        });
+        
+        if (activeBookings > 0) {
+            return res.json({ 
+                success: false, 
+                message: 'Cannot delete passenger with active bookings' 
+            });
+        }
+        
+        // Soft delete - update status
+        const result = await usersCollection.updateOne(
+            { user_id: req.params.id },
+            { $set: { status: 'inactive', updated_at: new Date() } }
+        );
+        
+        if (result.matchedCount === 0) {
+            return res.json({ success: false, message: 'Passenger not found' });
+        }
+        
+        res.json({ success: true, message: 'Passenger deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting passenger:', error);
+        res.json({ success: false, message: 'Error deleting passenger' });
+    }
+});
+
+
+// ============================================
+// PASSENGER SERVICES ADMIN API ROUTES
+// ============================================
+
+// Statistics API
+app.get('/api/passenger-services/stats', requireAdminAuth, async (req, res) => {
+  try {
+    const bookingsCollection = getCollection(collections.bookings);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // Get today's bookings
+    const bookings = await bookingsCollection.find({
+      flight_date: { $gte: today, $lt: tomorrow }
+    }).toArray();
+    
+    const stats = {
+      totalPassengers: bookings.length,
+      checkedIn: bookings.filter(b => b.booking_status === 'checked_in' || b.booking_status === 'checked-in').length,
+      boarded: bookings.filter(b => b.booking_status === 'boarded').length,
+      pending: bookings.filter(b => b.booking_status === 'pending' || !b.booking_status || b.booking_status === 'confirmed').length
+    };
+    
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error loading passenger stats:', error);
+    res.json({ success: false, message: 'Error loading statistics' });
+  }
+});
+// Get all passengers 
+app.get('/api/passenger-services/passengers', requireAdminAuth, async (req, res) => {
+  try {
+    const bookingsCollection = getCollection(collections.bookings);
+    const usersCollection = getCollection(collections.users);
+    
+    // Get all bookings and join with users
+    const bookings = await bookingsCollection.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'passenger_id',
+          foreignField: 'user_id',
+          as: 'user_info'
+        }
+      },
+      {
+        $sort: { booking_date: -1 }
+      },
+      {
+        $limit: 100
+      }
+    ]).toArray();
+    
+    const passengersWithDetails = bookings.map(booking => {
+      const user = booking.user_info && booking.user_info.length > 0 ? booking.user_info[0] : null;
+      
+      // Determine the ID to use - prioritize user_id, then passport, then booking_reference
+      let passengerId;
+      if (user && user.user_id) {
+        passengerId = user.user_id;
+      } else if (user && user.passport_number) {
+        passengerId = user.passport_number;
+      } else if (booking.passenger_id) {
+        passengerId = booking.passenger_id;
+      } else {
+        passengerId = booking.booking_reference;
+      }
+      
+      // Format check-in time
+      let checkInTime = booking.check_in_time || 'N/A';
+      if (checkInTime !== 'N/A' && checkInTime) {
+        try {
+          const date = new Date(checkInTime);
+          checkInTime = date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch (error) {
+          checkInTime = 'N/A';
+        }
+      }
+      
+      return {
+        passenger_id: passengerId,
+        user_id: passengerId,
+        full_name: booking.passenger_name || user?.full_name || 'Unknown',
+        passport_number: user?.passport_number || booking.passport_number || 'N/A',
+        flight_code: booking.flight_code || 'N/A',
+        seat_number: booking.seat_number || 'N/A',
+        status: booking.booking_status || 'pending',
+        check_in_time: checkInTime,
+        booking_reference: booking.booking_reference
+      };
+    });
+    
+    res.json({ success: true, passengers: passengersWithDetails });
+  } catch (error) {
+    console.error('Error loading passengers:', error);
+    res.json({ 
+      success: false, 
+      message: 'Error loading passengers',
+      error: error.message 
+    });
+  }
+});
+
+// Get passenger by ID
+app.get('/api/passenger-services/passengers/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const passengerId = req.params.id;
+    
+    const usersCollection = getCollection(collections.users);
+    const bookingsCollection = getCollection(collections.bookings);
+    
+    // Try to find the passenger by different identifiers
+    let passenger = await usersCollection.findOne({
+      $or: [
+        { user_id: passengerId },
+        { passport_number: passengerId },
+        { email: passengerId }
+      ]
+    });
+    
+    // If not found, check bookings
+    if (!passenger) {
+      const booking = await bookingsCollection.findOne({
+        $or: [
+          { passenger_id: passengerId },
+          { passport_number: passengerId },
+          { booking_reference: passengerId }
+        ]
+      });
+      
+      if (booking && booking.passenger_id) {
+        passenger = await usersCollection.findOne({ user_id: booking.passenger_id });
+      }
+    }
+    
+    if (!passenger) {
+      return res.json({ success: false, message: 'Passenger not found' });
+    }
+    
+    // Get latest booking for this passenger
+    const booking = await bookingsCollection.findOne(
+      { passenger_id: passenger.user_id },
+      { sort: { booking_date: -1 } }
+    );
+    
+    // Combine passenger and booking data
+    const passengerData = {
+      ...passenger,
+      booking_info: booking || null,
+      status: booking?.booking_status || passenger.status || 'active'
+    };
+    
+    res.json({ success: true, passenger: passengerData });
+  } catch (error) {
+    console.error('Error fetching passenger:', error);
+    res.json({ success: false, message: 'Error fetching passenger' });
+  }
+});
+// Add new passenger
+app.post('/api/passenger-services/passengers', requireAdminAuth, async (req, res) => {
+  try {
+    const { first_name, last_name, passport_number, nationality, date_of_birth, email, phone_number } = req.body;
+    
+    if (!first_name || !last_name || !passport_number || !nationality || !date_of_birth || !email) {
+      return res.json({ success: false, message: 'Missing required fields' });
+    }
+    
+    const usersCollection = getCollection(collections.users);
+    
+    // Check if passenger already exists
+    const existingPassenger = await usersCollection.findOne({
+      $or: [
+        { passport_number: passport_number },
+        { email: email }
+      ]
+    });
+    
+    if (existingPassenger) {
+      return res.json({ success: false, message: 'Passenger with this passport or email already exists' });
+    }
+    
+    // Generate username from email
+    const username = email.split('@')[0];
+    
+    // Create temporary password (in real app, send email to set password)
+    const temporaryPassword = Math.random().toString(36).slice(-8);
+    const password_hash = await bcrypt.hash(temporaryPassword, 10);
+    
+    const newPassenger = {
+      user_id: generateId('USR-PASS-'),
+      username: username,
+      email: email,
+      password_hash: password_hash,
+      full_name: `${first_name} ${last_name}`,
+      first_name: first_name,
+      last_name: last_name,
+      passport_number: passport_number,
+      phone_number: phone_number || '',
+      date_of_birth: new Date(date_of_birth),
+      nationality: nationality,
+      avatar: '👤',
+      role: 'passenger',
+      frequent_flyer_number: `FF${Date.now()}`,
+      preferences: {
+        seat_preference: 'any',
+        meal_preference: 'regular',
+        special_assistance: []
+      },
+      status: 'active',
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+    
+    await usersCollection.insertOne(newPassenger);
+    
+    res.json({ 
+      success: true, 
+      message: 'Passenger added successfully',
+      passenger: newPassenger,
+      temporary_password: temporaryPassword
+    });
+  } catch (error) {
+    console.error('Error adding passenger:', error);
+    res.json({ success: false, message: 'Error adding passenger' });
+  }
+});
+
+app.put('/api/passenger-services/passengers/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const { 
+      first_name, 
+      last_name, 
+      passport_number, 
+      status, 
+      email, 
+      phone,
+      nationality,
+      date_of_birth
+    } = req.body;
+    
+    const usersCollection = getCollection(collections.users);
+    const bookingsCollection = getCollection(collections.bookings);
+    
+    const passengerId = req.params.id;
+    
+    console.log(`Updating passenger ${passengerId} with data:`, req.body);
+    
+    const updateData = { 
+      updated_at: new Date() 
+    };
+    
+    // Update ANY fields provided - NO VALIDATIONS
+    if (first_name !== undefined) updateData.first_name = first_name;
+    if (last_name !== undefined) updateData.last_name = last_name;
+    if (passport_number !== undefined) updateData.passport_number = passport_number;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone_number = phone;
+    if (nationality !== undefined) updateData.nationality = nationality;
+    if (date_of_birth !== undefined) updateData.date_of_birth = new Date(date_of_birth);
+    if (status !== undefined) updateData.status = status;
+    
+    // Update full name if first/last name provided
+    if (first_name || last_name) {
+      updateData.full_name = `${first_name || ''} ${last_name || ''}`.trim();
+    }
+    
+    let result;
+    
+    // Try to update by user_id first
+    result = await usersCollection.updateOne(
+      { user_id: passengerId },
+      { $set: updateData }
+    );
+    
+    // If not found by user_id, try by _id
+    if (result.matchedCount === 0) {
+      try {
+        result = await usersCollection.updateOne(
+          { _id: new ObjectId(passengerId) },
+          { $set: updateData }
+        );
+        console.log(`Updated passenger by ObjectId: ${passengerId}`);
+      } catch (objIdError) {
+        // Not an ObjectId, continue
+      }
+    }
+    
+    if (result.matchedCount === 0) {
+      return res.json({ 
+        success: false, 
+        message: 'Passenger not found. Tried user_id and _id.' 
+      });
+    }
+    
+    // Update booking status if provided - NO RESTRICTIONS
+    if (status !== undefined) {
+      await bookingsCollection.updateMany(
+        { passenger_id: passengerId },
+        { $set: { 
+          booking_status: status,
+          updated_at: new Date() 
+        }}
+      );
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Passenger updated successfully (no validations applied)',
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error updating passenger:', error);
+    res.json({ 
+      success: false, 
+      message: 'Error updating passenger: ' + error.message 
+    });
+  }
+});
+app.delete('/api/passenger-services/passengers/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const usersCollection = getCollection(collections.users);
+    
+    // NO CHECKS - Just delete
+    const result = await usersCollection.deleteOne({
+      user_id: req.params.id
+    });
+    
+    if (result.deletedCount === 0) {
+      return res.json({ success: false, message: 'Passenger not found' });
+    }
+    
+    // Also delete associated bookings (optional - if you want to clean up)
+    const bookingsCollection = getCollection(collections.bookings);
+    await bookingsCollection.deleteMany({
+      passenger_id: req.params.id
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Passenger deleted successfully (no restrictions applied)' 
+    });
+  } catch (error) {
+    console.error('Error deleting passenger:', error);
+    res.json({ success: false, message: 'Error deleting passenger' });
+  }
+});
+
+// Get flight passengers
+app.get('/api/passenger-services/flights/:code/passengers', requireAdminAuth, async (req, res) => {
+  try {
+    const bookingsCollection = getCollection(collections.bookings);
+    const usersCollection = getCollection(collections.users);
+    
+    const bookings = await bookingsCollection.find({ 
+      flight_code: req.params.code 
+    }).toArray();
+    
+    const passengers = await Promise.all(bookings.map(async (booking) => {
+      const user = await usersCollection.findOne({ user_id: booking.passenger_id });
+      
+      // Format check-in time
+      let checkInTime = booking.check_in_time;
+      if (checkInTime && checkInTime !== 'N/A') {
+        try {
+          const date = new Date(checkInTime);
+          checkInTime = date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch (error) {
+          checkInTime = 'N/A';
+        }
+      }
+      
+      return {
+        full_name: booking.passenger_name || 'Unknown',
+        seat_number: booking.seat_number || 'N/A',
+        cabin_class: booking.cabin_class || 'Economy',
+        status: booking.booking_status || 'pending',
+        check_in_time: checkInTime || 'N/A'
+      };
+    }));
+    
+    res.json({ success: true, passengers });
+  } catch (error) {
+    console.error('Error loading flight passengers:', error);
+    res.json({ success: false, message: 'Error loading flight passengers' });
+  }
+});
+
+// Manual check-in API (ADMIN VERSION - complete boarding pass)
+app.post('/api/passenger-services/manual-checkin', requireAdminAuth, async (req, res) => {
+  try {
+    const { booking_reference, passenger_name, flight_code, seat_number, notes } = req.body;
+    
+    if (!booking_reference || !passenger_name || !flight_code || !seat_number) {
+      return res.json({ success: false, message: 'Missing required fields' });
+    }
+    
+    const bookingsCollection = getCollection(collections.bookings);
+    const flightsCollection = getCollection(collections.flights);
+    const boardingPassCollection = getCollection(collections.boardingPasses);
+    const baggageCollection = getCollection(collections.baggage);
+    const usersCollection = getCollection(collections.users);
+    
+    // Find booking
+    const booking = await bookingsCollection.findOne({
+      booking_reference: booking_reference.toUpperCase()
+    });
+    
+    if (!booking) {
+      return res.json({ success: false, message: 'Booking not found' });
+    }
+    
+    // Check if already checked in
+    if (booking.booking_status === 'checked_in' || booking.booking_status === 'checked-in') {
+      return res.json({ success: false, message: 'Passenger already checked in' });
+    }
+    
+    // Get flight details
+    const flight = await flightsCollection.findOne({ flight_code: flight_code });
+    if (!flight) {
+      return res.json({ success: false, message: 'Flight not found' });
+    }
+    
+    // Get passenger details
+    const passenger = await usersCollection.findOne({ 
+      user_id: booking.passenger_id 
+    });
+    
+    // Calculate boarding time
+    const departureTime = flight.scheduled_departure || '';
+    const boardingTime = calculateBoardingTime(departureTime);
+    
+    // Update booking
+    await bookingsCollection.updateOne(
+      { booking_reference: booking_reference },
+      {
+        $set: {
+          seat_number: seat_number,
+          booking_status: 'checked_in',
+          check_in_time: new Date(),
+          updated_at: new Date()
+        }
+      }
+    );
+    
+    // Generate baggage tag
+    const baggageTag = `BT${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    
+    // Create baggage record
+    await baggageCollection.insertOne({
+      baggage_id: generateId('BAG-'),
+      passenger_id: booking.passenger_id,
+      booking_reference: booking_reference,
+      flight_code: flight_code,
+      baggage_tag: baggageTag,
+      baggage_type: 'checked',
+      weight: 20,
+      status: 'checked_in',
+      checked_in_at: new Date(),
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+    
+    // Create boarding pass
+    const barcode = `BP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const boardingPassId = `BP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    
+    await boardingPassCollection.insertOne({
+      boarding_pass_id: boardingPassId,
+      barcode: barcode,
+      booking_reference: booking_reference,
+      passenger_id: booking.passenger_id,
+      flight_code: flight_code,
+      flight_date: flight.flight_date || new Date(),
+      departure_time: departureTime,
+      gate: flight.gate || 'TBA',
+      boarding_time: boardingTime,
+      passenger_name: passenger_name,
+      passport_number: passenger?.passport_number || booking.passport_number || '',
+      seat_number: seat_number,
+      cabin_class: booking.cabin_class || 'economy',
+      status: 'issued',
+      baggage_tag_number: baggageTag,
+      baggage_weight: 20,
+      generated_at: new Date(),
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+    
+    // Update flight checked-in count
+    await flightsCollection.updateOne(
+      { flight_code: flight_code },
+      { $inc: { total_checked_in: 1 }, $set: { updated_at: new Date() } }
+    );
+    
+    // Format flight date for display
+    const flightDate = flight.flight_date ? new Date(flight.flight_date) : new Date();
+    const flightDateDisplay = flightDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Manual check-in completed successfully',
+      boardingPass: {
+        passenger: passenger_name,
+        passport: passenger?.passport_number || booking.passport_number || '',
+        flight: flight_code,
+        date: flightDateDisplay,
+        time: departureTime,
+        seat: seat_number,
+        gate: flight.gate || 'TBA',
+        boardingTime: boardingTime,
+        barcode: barcode,
+        origin: flight.origin_airport,
+        destination: flight.destination_airport,
+        cabinClass: booking.cabin_class || 'economy',
+        baggageTag: baggageTag
+      }
+    });
+  } catch (error) {
+    console.error('Error during manual check-in:', error);
+    res.json({ success: false, message: 'Error during manual check-in: ' + error.message });
+  }
+});
+// Add this new endpoint to just generate boarding pass
+app.post('/api/passenger-services/generate-boarding-pass', requireAdminAuth, async (req, res) => {
+    try {
+        const { booking_reference, force_generate } = req.body;
+        
+        if (!booking_reference) {
+            return res.json({ success: false, message: 'Booking reference is required' });
+        }
+        
+        const bookingsCollection = getCollection(collections.bookings);
+        const flightsCollection = getCollection(collections.flights);
+        const boardingPassCollection = getCollection(collections.boardingPasses);
+        
+        // Find booking
+        const booking = await bookingsCollection.findOne({
+            booking_reference: booking_reference.toUpperCase()
+        });
+        
+        if (!booking) {
+            return res.json({ success: false, message: 'Booking not found' });
+        }
+        
+        // Get flight details
+        const flight = await flightsCollection.findOne({ 
+            flight_code: booking.flight_code 
+        });
+        
+        if (!flight) {
+            return res.json({ success: false, message: 'Flight not found' });
+        }
+        
+        // Calculate boarding time
+        const departureTime = flight.scheduled_departure || '';
+        const boardingTime = calculateBoardingTime(departureTime);
+        
+        // Generate new boarding pass
+        const barcode = `BP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        const boardingPassId = `BP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        
+        // Remove existing boarding pass if exists
+        await boardingPassCollection.deleteOne({
+            booking_reference: booking_reference
+        });
+        
+        // Create new boarding pass
+        await boardingPassCollection.insertOne({
+            boarding_pass_id: boardingPassId,
+            barcode: barcode,
+            booking_reference: booking_reference,
+            passenger_id: booking.passenger_id,
+            flight_code: booking.flight_code,
+            flight_date: flight.flight_date || new Date(),
+            departure_time: departureTime,
+            gate: flight.gate || 'TBA',
+            boarding_time: boardingTime,
+            passenger_name: booking.passenger_name,
+            passport_number: booking.passport_number || '',
+            seat_number: booking.seat_number || 'N/A',
+            cabin_class: booking.cabin_class || 'economy',
+            status: 'issued',
+            baggage_tag_number: booking.baggage_tag_number,
+            baggage_weight: booking.baggage_weight || 0,
+            generated_at: new Date(),
+            created_at: new Date(),
+            updated_at: new Date()
+        });
+        
+        // Format response
+        const flightDate = flight.flight_date ? new Date(flight.flight_date) : new Date();
+        const flightDateDisplay = flightDate.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        res.json({ 
+            success: true, 
+            message: 'Boarding pass generated successfully',
+            boardingPass: {
+                passenger: booking.passenger_name,
+                passport: booking.passport_number || '',
+                flight: booking.flight_code,
+                date: flightDateDisplay,
+                time: departureTime,
+                seat: booking.seat_number || 'N/A',
+                gate: flight.gate || 'TBA',
+                boardingTime: boardingTime,
+                barcode: barcode,
+                origin: flight.origin_airport,
+                destination: flight.destination_airport,
+                cabinClass: booking.cabin_class || 'economy'
+            }
+        });
+    } catch (error) {
+        console.error('Error generating boarding pass:', error);
+        res.json({ success: false, message: 'Error generating boarding pass: ' + error.message });
+    }
+});
+// Delete booking
+app.delete('/api/passenger-services/bookings/:id', requireAdminAuth, async (req, res) => {
+    try {
+        const bookingsCollection = getCollection(collections.bookings);
+        
+        const result = await bookingsCollection.deleteOne({
+            booking_id: req.params.id
+        });
+        
+        if (result.deletedCount === 0) {
+            return res.json({ success: false, message: 'Booking not found' });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Booking deleted successfully' 
+        });
+    } catch (error) {
+        console.error('Error deleting booking:', error);
+        res.json({ success: false, message: 'Error deleting booking' });
+    }
+});
+
+// Generate boarding pass API - Always generates a boarding pass
+app.post('/api/passenger-services/generate-boarding-pass', requireAdminAuth, async (req, res) => {
+    try {
+        const { booking_reference, passenger_name, flight_code, seat_number, baggage_type, force_generate } = req.body;
+        
+        if (!booking_reference || !flight_code || !seat_number) {
+            return res.json({ success: false, message: 'Missing required fields' });
+        }
+        
+        const bookingsCollection = getCollection(collections.bookings);
+        const flightsCollection = getCollection(collections.flights);
+        const boardingPassCollection = getCollection(collections.boardingPasses);
+        const usersCollection = getCollection(collections.users);
+        
+        // Find booking
+        const booking = await bookingsCollection.findOne({
+            booking_reference: booking_reference.toUpperCase()
+        });
+        
+        if (!booking) {
+            return res.json({ success: false, message: 'Booking not found' });
+        }
+        
+        // Get flight details
+        const flight = await flightsCollection.findOne({ 
+            flight_code: flight_code 
+        });
+        
+        if (!flight) {
+            return res.json({ success: false, message: 'Flight not found' });
+        }
+        
+        // Get passenger details
+        const passenger = await usersCollection.findOne({ 
+            user_id: booking.passenger_id 
+        });
+        
+        // Calculate boarding time
+        const departureTime = flight.scheduled_departure || '09:00';
+        const boardingTime = calculateBoardingTime(departureTime);
+        
+        // Generate baggage tag if baggage present
+        const baggageTag = baggage_type !== 'none' ? `BT${Date.now()}${Math.floor(Math.random() * 1000)}` : null;
+        
+        // Check if boarding pass already exists
+        let existingBoardingPass = await boardingPassCollection.findOne({
+            booking_reference: booking_reference
+        });
+        
+        // If exists and force_generate is true, delete it first
+        if (existingBoardingPass && force_generate) {
+            await boardingPassCollection.deleteOne({
+                booking_reference: booking_reference
+            });
+            existingBoardingPass = null;
+        }
+        
+        // Update booking if not already checked in
+        if (booking.booking_status !== 'checked_in' && booking.booking_status !== 'checked-in') {
+            await bookingsCollection.updateOne(
+                { booking_reference: booking_reference },
+                {
+                    $set: {
+                        seat_number: seat_number,
+                        booking_status: 'checked_in',
+                        check_in_time: new Date(),
+                        updated_at: new Date()
+                    }
+                }
+            );
+            
+            // Update flight checked-in count
+            await flightsCollection.updateOne(
+                { flight_code: flight_code },
+                { $inc: { total_checked_in: 1 }, $set: { updated_at: new Date() } }
+            );
+        } else {
+            // Already checked in, just update seat if different
+            await bookingsCollection.updateOne(
+                { booking_reference: booking_reference },
+                {
+                    $set: {
+                        seat_number: seat_number,
+                        updated_at: new Date()
+                    }
+                }
+            );
+        }
+        
+        // Create new boarding pass or update existing
+        const barcode = existingBoardingPass ? existingBoardingPass.barcode : `BP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        const boardingPassId = existingBoardingPass ? existingBoardingPass.boarding_pass_id : `BP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        
+        const boardingPassData = {
+            boarding_pass_id: boardingPassId,
+            barcode: barcode,
+            booking_reference: booking_reference,
+            passenger_id: booking.passenger_id,
+            flight_code: flight_code,
+            flight_date: flight.flight_date || new Date(),
+            departure_time: departureTime,
+            gate: flight.gate || 'TBA',
+            boarding_time: boardingTime,
+            passenger_name: passenger_name || booking.passenger_name,
+            passport_number: passenger?.passport_number || booking.passport_number || '',
+            seat_number: seat_number,
+            cabin_class: booking.cabin_class || 'economy',
+            status: 'issued',
+            baggage_tag_number: baggageTag,
+            baggage_weight: baggage_type === '20kg' ? 20 : baggage_type === '32kg' ? 32 : 0,
+            generated_at: new Date(),
+            updated_at: new Date()
+        };
+        
+        if (existingBoardingPass) {
+            await boardingPassCollection.updateOne(
+                { boarding_pass_id: boardingPassId },
+                { $set: boardingPassData }
+            );
+        } else {
+            boardingPassData.created_at = new Date();
+            await boardingPassCollection.insertOne(boardingPassData);
+        }
+        
+        // Format response
+        const flightDate = flight.flight_date ? new Date(flight.flight_date) : new Date();
+        const flightDateDisplay = flightDate.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        res.json({ 
+            success: true, 
+            message: existingBoardingPass ? 'Boarding pass updated' : 'Boarding pass generated successfully',
+            boardingPass: {
+                passenger: passenger_name || booking.passenger_name,
+                passport: passenger?.passport_number || booking.passport_number || '',
+                flight: flight_code,
+                date: flightDateDisplay,
+                time: departureTime,
+                seat: seat_number,
+                gate: flight.gate || 'TBA',
+                boardingTime: boardingTime,
+                barcode: barcode,
+                origin: flight.origin_airport,
+                destination: flight.destination_airport,
+                cabinClass: booking.cabin_class || 'economy',
+                baggageTag: baggageTag,
+                status: existingBoardingPass ? 'Updated' : 'New'
+            }
+        });
+    } catch (error) {
+        console.error('Error generating boarding pass:', error);
+        res.json({ success: false, message: 'Error generating boarding pass: ' + error.message });
+    }
+});
+
+// API endpoint to check if boarding pass exists
+app.get('/api/check-boarding-pass/:bookingRef', async (req, res) => {
+    try {
+        const bookingRef = req.params.bookingRef;
+        const boardingPass = await db.collection('boarding_passes').findOne({ 
+            booking_reference: bookingRef 
+        });
+        
+        if (boardingPass) {
+            const booking = await db.collection('bookings').findOne({ 
+                booking_reference: bookingRef 
+            });
+            
+            res.json({
+                success: true,
+                boardingPass: boardingPass,
+                booking: booking
+            });
+        } else {
+            res.json({
+                success: false,
+                message: 'No boarding pass found'
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error checking boarding pass'
+        });
+    }
+});
+
+// API endpoint to update baggage
+app.post('/api/update-baggage', async (req, res) => {
+    try {
+        const { booking_reference, baggage_type, baggage_weight } = req.body;
+        
+        // Update booking
+        await db.collection('bookings').updateOne(
+            { booking_reference: booking_reference },
+            {
+                $set: {
+                    baggage_type: baggage_type,
+                    baggage_weight: baggage_weight,
+                    updated_at: new Date()
+                }
+            }
+        );
+        
+        // Update boarding pass if exists
+        await db.collection('boarding_passes').updateOne(
+            { booking_reference: booking_reference },
+            {
+                $set: {
+                    baggage_type: baggage_type,
+                    baggage_weight: baggage_weight,
+                    updated_at: new Date()
+                }
+            }
+        );
+        
+        res.json({
+            success: true,
+            message: 'Baggage updated successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error updating baggage'
+        });
+    }
+});
+app.delete('/api/passenger-services/passengers/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const passengerId = req.params.id;
+    console.log(`Attempting to delete passenger with ID: ${passengerId}`);
+    
+    const usersCollection = getCollection(collections.users);
+    const bookingsCollection = getCollection(collections.bookings);
+    const boardingPassCollection = getCollection(collections.boardingPasses);
+    const baggageCollection = getCollection(collections.baggage);
+    
+    let deleteResult = { user: 0, bookings: 0, boardingPasses: 0, baggage: 0 };
+    
+    // Try different ways to identify the passenger
+    const query = {
+      $or: [
+        { user_id: passengerId },
+        { passport_number: passengerId },
+        { email: passengerId }
+      ]
+    };
+    
+    // Try to find the user
+    const user = await usersCollection.findOne(query);
+    
+    if (user) {
+      // Delete by user_id
+      deleteResult.user = (await usersCollection.deleteOne({ user_id: user.user_id })).deletedCount;
+      deleteResult.bookings = (await bookingsCollection.deleteMany({ passenger_id: user.user_id })).deletedCount;
+      deleteResult.boardingPasses = (await boardingPassCollection.deleteMany({ passenger_id: user.user_id })).deletedCount;
+      deleteResult.baggage = (await baggageCollection.deleteMany({ passenger_id: user.user_id })).deletedCount;
+    } else {
+      // Try by passport number in bookings
+      const booking = await bookingsCollection.findOne({ passport_number: passengerId });
+      if (booking && booking.passenger_id) {
+        deleteResult.user = (await usersCollection.deleteOne({ user_id: booking.passenger_id })).deletedCount;
+        deleteResult.bookings = (await bookingsCollection.deleteMany({ passenger_id: booking.passenger_id })).deletedCount;
+        deleteResult.boardingPasses = (await boardingPassCollection.deleteMany({ passenger_id: booking.passenger_id })).deletedCount;
+        deleteResult.baggage = (await baggageCollection.deleteMany({ passenger_id: booking.passenger_id })).deletedCount;
+      }
+    }
+    
+    // If still no deletions, try direct ID matching
+    if (deleteResult.user === 0) {
+      // Try direct delete without restrictions
+      deleteResult.user = (await usersCollection.deleteOne({ 
+        $or: [
+          { user_id: passengerId },
+          { _id: new ObjectId(passengerId) }
+        ]
+      })).deletedCount;
+      
+      deleteResult.bookings = (await bookingsCollection.deleteMany({ 
+        $or: [
+          { passenger_id: passengerId },
+          { passport_number: passengerId },
+          { booking_reference: passengerId }
+        ]
+      })).deletedCount;
+    }
+    
+    const totalDeleted = deleteResult.user + deleteResult.bookings + deleteResult.boardingPasses + deleteResult.baggage;
+    
+    if (totalDeleted > 0) {
+      res.json({ 
+        success: true, 
+        message: `Deleted ${totalDeleted} record(s)`,
+        details: deleteResult
+      });
+    } else {
+      res.json({ 
+        success: false, 
+        message: 'No records found to delete' 
+      });
+    }
+  } catch (error) {
+    console.error('Error deleting passenger:', error);
+    res.json({ 
+      success: false, 
+      message: 'Error deleting passenger: ' + error.message 
+    });
   }
 });

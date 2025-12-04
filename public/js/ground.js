@@ -137,11 +137,12 @@ function getStatusBadge(status) {
         case 'pending':
             return '<span class="badge badge-warning">Pending</span>';
         case 'in-progress':
+        case 'in_progress': 
             return '<span class="badge badge-info">In Progress</span>';
         case 'completed':
             return '<span class="badge badge-success">Completed</span>';
         default:
-            return '<span class="badge badge-secondary">' + status + '</span>';
+            return '<span class="badge badge-secondary">' + (status || 'Unknown') + '</span>';
     }
 }
 
@@ -195,16 +196,25 @@ function closeAddServiceModal() {
 }
 
 function showUpdateServiceModal(serviceId) {
+    console.log('Opening modal for service:', serviceId);
+    
     const service = servicesData.find(s => s.service_id === serviceId);
-    if (!service || !updateServiceModal) return;
+    if (!service) {
+        console.error('Service not found:', serviceId);
+        showNotification('Service not found in local data', 'error');
+        return;
+    }
+    
+    console.log('Found service:', service);
     
     document.getElementById('updateServiceId').value = service.service_id;
     document.getElementById('updateStatus').value = service.status;
     document.getElementById('updateNotes').value = service.notes || '';
     
-    updateServiceModal.style.display = 'block';
+    if (updateServiceModal) {
+        updateServiceModal.style.display = 'block';
+    }
 }
-
 function closeUpdateServiceModal() {
     if (updateServiceModal) {
         updateServiceModal.style.display = 'none';
@@ -266,6 +276,8 @@ async function handleUpdateService(event) {
     const status = document.getElementById('updateStatus').value;
     const notes = document.getElementById('updateNotes').value;
     
+    console.log('Updating service:', { serviceId, status, notes });
+    
     try {
         const response = await fetch(`/api/ground-services/${serviceId}`, {
             method: 'PUT',
@@ -274,11 +286,13 @@ async function handleUpdateService(event) {
             },
             body: JSON.stringify({
                 status: status,
-                notes: notes
+                notes: notes,
+                updated_at: new Date().toISOString()
             })
         });
         
         const data = await response.json();
+        console.log('Update response:', data);
         
         if (data.success) {
             showNotification('Service updated successfully!', 'success');
@@ -289,10 +303,9 @@ async function handleUpdateService(event) {
         }
     } catch (error) {
         console.error('Error updating service:', error);
-        showNotification('Network error updating service', 'error');
+        showNotification('Network error updating service: ' + error.message, 'error');
     }
 }
-
 // Delete service
 async function deleteService(serviceId) {
     if (!confirm('Are you sure you want to delete this service?')) {

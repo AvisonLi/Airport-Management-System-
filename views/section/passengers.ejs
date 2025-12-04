@@ -1,0 +1,2525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Passenger Services - Admin' %></title>
+    <link rel="stylesheet" href="/css/airport-system.css">
+    <style>
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .seat {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .seat.available {
+            background: #10b981;
+            color: white;
+        }
+
+        .seat.occupied {
+            background: #ef4444;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        .seat.selected {
+            background: #3b82f6;
+            color: white;
+            border-color: #1d4ed8;
+            transform: scale(1.05);
+        }
+
+        .seat.premium {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .seat.aisle {
+            background: transparent;
+            cursor: default;
+        }
+
+        .seat-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .seat-row-label {
+            min-width: 30px;
+            font-weight: bold;
+            color: #6b7280;
+        }
+
+        .seat-section {
+            margin-bottom: 30px;
+        }
+
+        .seat-section-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .seat-legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+        }
+
+        .legend-box.available {
+            background: #10b981;
+        }
+
+        .legend-box.occupied {
+            background: #ef4444;
+        }
+
+        .legend-box.selected {
+            background: #3b82f6;
+        }
+
+        .legend-box.premium {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        
+        :root {
+            --sidebar-width: 250px;
+            --topbar-height: 70px;
+            --padding-lg: 20px;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: var(--padding-lg);
+            width: calc(100% - var(--sidebar-width));
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+
+        /* Statistics Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        /* Service Cards */
+        .service-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px;
+            border-bottom: 1px solid #eef2f7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: #374151;
+            background: #f9fafb;
+        }
+
+        .tab.active {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #3b82f6;
+        }
+
+        /* Forms */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .admin-step-content {
+            display: none;
+        }
+
+        .admin-step-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .step-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+
+        .step.active .step-circle {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .step.completed .step-circle {
+            background: #10b981;
+            color: white;
+        }
+
+        .step-title {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .step.active .step-title {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .data-table th {
+            background-color: #f8fafc;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+            color: #374151;
+        }
+
+        .data-table tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Status badges */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-info {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Action buttons in table */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+
+        /* Search and filter */
+        .search-filter {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .search-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            max-width: 300px;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .modal-title {
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #374151;
+        }
+
+        /* Boarding Pass Specific Styles */
+        #tab-checkin,
+        #tab-checkin * {
+            color: #333 !important;
+        }
+
+        .boarding-pass {
+            border: 2px solid #333;
+            padding: 20px;
+            max-width: 400px;
+            margin: 20px auto;
+            background: white !important;
+            color: #333 !important;
+        }
+
+        .boarding-pass * {
+            color: #333 !important;
+            background-color: transparent !important;
+        }
+
+        .boarding-pass h3,
+        .boarding-pass h4,
+        .boarding-pass h5,
+        .boarding-pass p,
+        .boarding-pass span,
+        .boarding-pass div {
+            color: #333 !important;
+        }
+
+        .bp-label {
+            font-size: 12px;
+            color: #666 !important;
+            margin: 5px 0;
+        }
+
+        .bp-value {
+            font-weight: bold;
+            color: #2c3e50 !important;
+            margin: 0;
+        }
+
+        .bp-large {
+            font-size: 18px;
+            color: #2c3e50 !important;
+        }
+
+        .bp-boarding-time {
+            font-size: 18px;
+            color: #e74c3c !important;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .bp-barcode {
+            font-family: monospace;
+            letter-spacing: 2px;
+            font-size: 14px;
+            color: #000 !important;
+            background: white !important;
+            padding: 10px;
+            border: 1px solid #333;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                padding: 15px;
+            }
+
+            .search-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-input {
+                max-width: 100%;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                margin: 20px auto;
+                width: 95%;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo" style="padding: 20px; border-bottom: 1px solid #334155;">
+            <h2 style="margin: 0 0 5px 0; color: white;">✈️ AMS</h2>
+            <span style="font-size: 12px; color: #cbd5e1;">AIRPORT MANAGEMENT SYSTEM</span>
+        </div>
+        
+        <ul class="nav-menu" style="list-style: none; padding: 0; margin: 0;">
+            <li class="nav-item active">
+                <a href="/section/passengers" style="display: flex; align-items: center; gap: 10px; padding: 15px 20px; color: white; text-decoration: none; border-left: 3px solid #3b82f6; background: rgba(59, 130, 246, 0.1);">
+                    <i class="icon">👤</i>
+                    <span>Passenger Services</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/section/boarding" style="display: flex; align-items: center; gap: 10px; padding: 15px 20px; color: #cbd5e1; text-decoration: none; border-left: 3px solid transparent;">
+                    <i class="icon">🚪</i>
+                    <span>Boarding & Gates</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/section/aircraft" style="display: flex; align-items: center; gap: 10px; padding: 15px 20px; color: #cbd5e1; text-decoration: none; border-left: 3px solid transparent;">
+                    <i class="icon">🛩️</i>
+                    <span>Aircraft & Crew</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/ground" style="display: flex; align-items: center; gap: 10px; padding: 15px 20px; color: #cbd5e1; text-decoration: none; border-left: 3px solid transparent;">
+                    <i class="icon">🚛</i>
+                    <span>Ground Services</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/section/crew" style="display: flex; align-items: center; gap: 10px; padding: 15px 20px; color: #cbd5e1; text-decoration: none; border-left: 3px solid transparent;">
+                    <i class="icon">👷</i>
+                    <span>Crew Management</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content" style="margin-left: 250px; padding: 20px; width: calc(100% - 250px); box-sizing: border-box;">
+        <!-- Top Bar -->
+        <header class="top-bar" style="position: sticky; top: 0; z-index: 100; background: white; padding: 15px 0; border-bottom: 1px solid #e5e7eb; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div class="breadcrumb">
+                <span id="current-section" style="font-size: 18px; font-weight: 600; color: #2c3e50;">Passenger Services - Admin Dashboard</span>
+            </div>
+            <div class="user-info" style="display: flex; align-items: center; gap: 15px;">
+                <div class="user-details" style="text-align: right;">
+                    <span class="user-name" style="display: block; font-weight: 600; color: #2c3e50;"><%= user?.full_name || 'Admin User' %></span>
+                    <span class="user-role" style="font-size: 12px; color: #6b7280; text-transform: uppercase;"><%= user?.role || 'admin' %></span>
+                </div>
+                <div class="avatar" style="width: 40px; height: 40px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;"><%= user?.avatar || '👨‍💼' %></div>
+                <a href="/logout" class="logout-btn" style="padding: 8px; border-radius: 6px; background: #f3f4f6; text-decoration: none;">
+                    <span>🚪</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('passengers')">Passengers</button>
+            <button class="tab" onclick="showTab('bookings')">Bookings</button>
+            <button class="tab" onclick="showTab('flights')">Flights</button>
+            <button class="tab" onclick="showTab('checkin')">Check-in</button>
+        </div>
+
+        <!-- Tab Content: Passengers -->
+        <div class="tab-content active" id="tab-passengers">
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>👤 Passenger Management</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="showAddPassengerModal()">
+                            ➕ Add Passenger
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshPassengers()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <!-- Search and Filter -->
+                    <div class="search-filter">
+                        <div class="search-group">
+                            <div class="search-input">
+                                <input type="text" id="passenger-search" class="form-control" placeholder="Search by name, passport, or booking reference">
+                            </div>
+                            <select id="passenger-filter" class="form-control" style="max-width: 200px;">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending Check-in</option>
+                                <option value="checked_in">Checked In</option>
+                                <option value="boarded">Boarded</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="searchPassengers()">Search</button>
+                        </div>
+                    </div>
+
+                    <!-- Passengers Table -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Passenger ID</th>
+                                    <th>Name</th>
+                                    <th>Passport</th>
+                                    <th>Flight</th>
+                                    <th>Seat</th>
+                                    <th>Status</th>
+                                    <th>Check-in Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="passengersTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 40px;">
+                                        Loading passengers...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Bookings -->
+        <div class="tab-content" id="tab-bookings">
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>📋 Booking Management</h3>
+                    <button class="btn btn-secondary" onclick="refreshBookings()">
+                        🔄 Refresh
+                    </button>
+                </div>
+                <div class="card-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Booking Reference</th>
+                                    <th>Passenger</th>
+                                    <th>Flight</th>
+                                    <th>Date</th>
+                                    <th>Seat</th>
+                                    <th>Cabin Class</th>
+                                    <th>Status</th>
+                                    <th>Payment</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookingsTableBody">
+                                <tr>
+                                    <td colspan="10" style="text-align: center; padding: 40px;">
+                                        Loading bookings...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Flights -->
+        <div class="tab-content" id="tab-flights">
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>✈️ Flight Management</h3>
+                </div>
+                <div class="card-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Flight Code</th>
+                                    <th>Route</th>
+                                    <th>Departure</th>
+                                    <th>Gate</th>
+                                    <th>Aircraft</th>
+                                    <th>Status</th>
+                                    <th>Total Seats</th>
+                                    <th>Booked</th>
+                                    <th>Checked In</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flightsTableBody">
+                                <% if (flights && flights.length > 0) { %>
+                                    <% flights.forEach(flight => { %>
+                                        <tr>
+                                            <td><strong><%= flight.code %></strong></td>
+                                            <td><%= flight.route %></td>
+                                            <td><%= flight.departure %></td>
+                                            <td><%= flight.gate %></td>
+                                            <td><%= flight.aircraft || 'N/A' %></td>
+                                            <td>
+                                                <span class="badge <%= 
+                                                    flight.status === 'scheduled' ? 'badge-info' : 
+                                                    flight.status === 'boarding' ? 'badge-warning' : 
+                                                    flight.status === 'departed' ? 'badge-success' : 
+                                                    'badge-secondary' %>">
+                                                    <%= flight.status %>
+                                                </span>
+                                            </td>
+                                            <td><%= flight.total_seats || '180' %></td>
+                                            <td><%= flight.total_booked || '0' %></td>
+                                            <td><%= flight.total_checked_in || '0' %></td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-primary" onclick="viewFlightPassengers('<%= flight.code %>')">
+                                                        👥 View Passengers
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="10" style="text-align: center; padding: 40px;">
+                                            No flights available
+                                        </td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Check-in -->
+        <div class="tab-content" id="tab-checkin">
+            <div class="service-card">
+                <div class="card-header">
+                    <h3>🎫 Manual Check-in System</h3>
+                </div>
+                <div class="card-content">
+                    <!-- Step Indicator -->
+                    <div class="step-indicator" style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+                        <div class="step active" id="admin-step-1">
+                            <div class="step-circle">1</div>
+                            <div class="step-title">Find Booking</div>
+                        </div>
+                        <div class="step" id="admin-step-2">
+                            <div class="step-circle">2</div>
+                            <div class="step-title">Select Seat</div>
+                        </div>
+                        <div class="step" id="admin-step-3">
+                            <div class="step-circle">3</div>
+                            <div class="step-title">Confirm</div>
+                        </div>
+                        <div class="step" id="admin-step-4">
+                            <div class="step-circle">4</div>
+                            <div class="step-title">Boarding Pass</div>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Find Booking -->
+                    <div class="admin-step-content active" id="admin-step-content-1">
+                        <h4>Find Booking</h4>
+                        <div class="form-group">
+                            <label>Booking Reference *</label>
+                            <input type="text" id="admin-booking-ref" class="form-control" placeholder="e.g., BK-ALA-001">
+                        </div>
+                        <div class="form-group">
+                            <label>Passenger Name *</label>
+                            <input type="text" id="admin-passenger-name" class="form-control" placeholder="Full name">
+                        </div>
+                        <button class="btn btn-primary" onclick="adminFindBooking()">
+                            🔍 Find Booking
+                        </button>
+                    </div>
+
+                    <!-- Step 2: Select Seat -->
+                    <div class="admin-step-content" id="admin-step-content-2">
+                        <h4>Select Seat</h4>
+                        <div class="seat-map-container" style="margin: 20px 0;">
+                            <div class="seat-legend" style="display: flex; gap: 20px; margin-bottom: 15px;">
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <div style="width: 20px; height: 20px; background: #10b981; border-radius: 4px;"></div>
+                                    <span>Available</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <div style="width: 20px; height: 20px; background: #ef4444; border-radius: 4px;"></div>
+                                    <span>Occupied</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <div style="width: 20px; height: 20px; background: #3b82f6; border-radius: 4px;"></div>
+                                    <span>Selected</span>
+                                </div>
+                            </div>
+                            
+                            <div class="seat-grid" id="admin-seat-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;">
+                                <!-- Seats will be dynamically generated -->
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Baggage</label>
+                            <select id="admin-baggage" class="form-control">
+                                <option value="none">No extra baggage</option>
+                                <option value="20kg">20kg Checked Bag</option>
+                                <option value="32kg">32kg Checked Bag</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button class="btn btn-secondary" onclick="adminPreviousStep(1)">← Back</button>
+                            <button class="btn btn-primary" onclick="adminNextStep(3)">Continue →</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Confirm Details -->
+                    <div class="admin-step-content" id="admin-step-content-3">
+                        <h4>Confirm Check-in</h4>
+                        <div class="confirmation-details" style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <h5>Passenger Details</h5>
+                            <p><strong>Name:</strong> <span id="confirm-name"></span></p>
+                            <p><strong>Flight:</strong> <span id="confirm-flight"></span></p>
+                            <p><strong>Seat:</strong> <span id="confirm-seat"></span></p>
+                            <p><strong>Baggage:</strong> <span id="confirm-baggage">No extra baggage</span></p>
+                            <p><strong>Gate:</strong> <span id="confirm-gate">TBA</span></p>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button class="btn btn-secondary" onclick="adminPreviousStep(2)">← Back</button>
+                            <button class="btn btn-success" onclick="adminCompleteCheckin()">
+                                ✅ Complete Check-in
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Boarding Pass -->
+                    <div class="admin-step-content" id="admin-step-content-4">
+                        <h4>Boarding Pass Generated</h4>
+                        <div class="boarding-pass">
+                            <div style="text-align: center; border-bottom: 2px dashed #333; padding-bottom: 15px; margin-bottom: 15px;">
+                                <h3 style="margin: 0; color: #2c3e50;">✈️ HKAP Airlines</h3>
+                                <p class="bp-label">BOARDING PASS</p>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div>
+                                    <p class="bp-label">PASSENGER</p>
+                                    <p class="bp-value" id="bp-passenger"></p>
+                                </div>
+                                <div>
+                                    <p class="bp-label">FLIGHT</p>
+                                    <p class="bp-value" id="bp-flight"></p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div>
+                                    <p class="bp-label">DATE</p>
+                                    <p class="bp-value" id="bp-date"></p>
+                                </div>
+                                <div>
+                                    <p class="bp-label">TIME</p>
+                                    <p class="bp-value" id="bp-time"></p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div>
+                                    <p class="bp-label">SEAT</p>
+                                    <p class="bp-large" id="bp-seat"></p>
+                                </div>
+                                <div>
+                                    <p class="bp-label">GATE</p>
+                                    <p class="bp-large" id="bp-gate"></p>
+                                </div>
+                            </div>
+                            
+                            <div style="background: #f5f5f5; padding: 10px; text-align: center; margin: 15px 0;">
+                                <p class="bp-label">BOARDING TIME</p>
+                                <p class="bp-boarding-time" id="bp-boarding"></p>
+                            </div>
+                            
+                            <div style="text-align: center; margin-top: 15px;">
+                                <div class="bp-barcode" id="bp-barcode"></div>
+                                <p style="margin: 5px 0; font-size: 10px; color: #666;">Scan barcode at boarding gate</p>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 30px;">
+                            <button class="btn btn-primary" onclick="adminPrintBoardingPass()">
+                                🖨️ Print Boarding Pass
+                            </button>
+                            <button class="btn btn-success" onclick="adminDownloadPDF()">
+                                📄 Download PDF
+                            </button>
+                            <button class="btn btn-secondary" onclick="adminResetCheckin()">
+                                🔄 New Check-in
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Passenger Modal -->
+    <div id="addPassengerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Passenger</h3>
+                <button class="modal-close" onclick="closeAddPassengerModal()">×</button>
+            </div>
+            <form id="addPassengerForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>First Name *</label>
+                        <input type="text" id="add-first-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name *</label>
+                        <input type="text" id="add-last-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Passport Number *</label>
+                        <input type="text" id="add-passport" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nationality *</label>
+                        <select id="add-nationality" class="form-control" required>
+                            <option value="">Select</option>
+                            <option value="HKG">Hong Kong SAR</option>
+                            <option value="CHN">China</option>
+                            <option value="TWN">Taiwan</option>
+                            <option value="USA">United States</option>
+                            <option value="GBR">United Kingdom</option>
+                            <option value="JPN">Japan</option>
+                            <option value="KOR">South Korea</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Birth *</label>
+                        <input type="date" id="add-dob" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" id="add-email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="add-phone" class="form-control">
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddPassengerModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Create Passenger
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Passenger Modal -->
+    <div id="editPassengerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Passenger</h3>
+                <button class="modal-close" onclick="closeEditPassengerModal()">×</button>
+            </div>
+            <form id="editPassengerForm">
+                <input type="hidden" id="edit-passenger-id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>First Name *</label>
+                        <input type="text" id="edit-first-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name *</label>
+                        <input type="text" id="edit-last-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Passport Number *</label>
+                        <input type="text" id="edit-passport" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="edit-status" class="form-control">
+                            <option value="pending">Pending</option>
+                            <option value="checked_in">Checked In</option>
+                            <option value="boarded">Boarded</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditPassengerModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Update Passenger
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Flight Passengers Modal -->
+    <div id="flightPassengersModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="flightPassengersTitle">Flight Passengers</h3>
+                <button class="modal-close" onclick="closeFlightPassengersModal()">×</button>
+            </div>
+            <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Passenger</th>
+                            <th>Seat</th>
+                            <th>Class</th>
+                            <th>Status</th>
+                            <th>Check-in Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flightPassengersBody">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeFlightPassengersModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Global variables
+    let passengersData = [];
+    let bookingsData = [];
+    let currentFlightCode = null;
+    
+    // Admin Check-in Variables
+    let adminBookingData = null;
+    let adminSelectedSeat = null;
+    let adminCurrentStep = 1;
+    let adminFlightSeats = [];
+    let adminOriginalButtonText = null;
+
+    // Tab navigation
+    function showTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Show selected tab content
+        const tabContent = document.getElementById(`tab-${tabName}`);
+        if (tabContent) {
+            tabContent.classList.add('active');
+        }
+        
+        // Set active tab
+        const activeTab = document.querySelector(`.tab[onclick*="${tabName}"]`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+        }
+        
+        // Load data based on tab
+        if (tabName === 'passengers') {
+            loadPassengers();
+        } else if (tabName === 'bookings') {
+            loadBookings();
+        } else if (tabName === 'checkin') {
+            adminResetCheckin();
+        }
+    }
+
+    // Admin Step Navigation
+    function adminShowStep(step) {
+        // Hide all steps
+        document.querySelectorAll('.admin-step-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.querySelectorAll('.step').forEach(stepEl => {
+            stepEl.classList.remove('active', 'completed');
+        });
+        
+        // Show current step
+        const stepContent = document.getElementById(`admin-step-content-${step}`);
+        if (stepContent) {
+            stepContent.classList.add('active');
+            document.getElementById(`admin-step-${step}`).classList.add('active');
+        }
+        
+        // Mark previous steps as completed
+        for (let i = 1; i < step; i++) {
+            const stepEl = document.getElementById(`admin-step-${i}`);
+            if (stepEl) stepEl.classList.add('completed');
+        }
+        
+        adminCurrentStep = step;
+    }
+
+    function adminNextStep(nextStep) {
+        if (validateAdminStep(adminCurrentStep)) {
+            adminShowStep(nextStep);
+        }
+    }
+
+    function adminPreviousStep(prevStep) {
+        adminShowStep(prevStep);
+    }
+
+    function validateAdminStep(step) {
+        switch(step) {
+            case 1:
+                const bookingRef = document.getElementById('admin-booking-ref').value.trim();
+                const passengerName = document.getElementById('admin-passenger-name').value.trim();
+                if (!bookingRef || !passengerName) {
+                    showNotification('Please fill in booking reference and passenger name', 'error');
+                    return false;
+                }
+                return true;
+            case 2:
+                if (!adminSelectedSeat) {
+                    showNotification('Please select a seat', 'error');
+                    return false;
+                }
+                return true;
+            default:
+                return true;
+        }
+    }
+
+    // Find Booking - FIXED: Added async keyword
+    async function adminFindBooking() {
+        const bookingRef = document.getElementById('admin-booking-ref').value.trim().toUpperCase();
+        const passengerName = document.getElementById('admin-passenger-name').value.trim();
+        
+        if (!bookingRef || !passengerName) {
+            showNotification('Please fill all required fields', 'error');
+            return;
+        }
+        
+        const button = event?.target || document.querySelector('#admin-step-content-1 .btn-primary');
+        adminOriginalButtonText = button.innerHTML;
+        button.innerHTML = '🔍 Finding...';
+        button.disabled = true;
+        
+        try {
+            // Try to find booking
+            const response = await fetch('/api/verify-booking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    bookingRef: bookingRef,
+                    fullName: passengerName 
+                })
+            });
+            
+            const data = await response.json();
+            
+            button.innerHTML = adminOriginalButtonText;
+            button.disabled = false;
+            
+            if (data.success) {
+                adminBookingData = data.booking;
+                showNotification('✅ Booking found successfully!', 'success');
+                
+                // Generate seat map based on flight
+                generateAdminSeatMap();
+                
+                // Update confirmation info
+                document.getElementById('confirm-name').textContent = adminBookingData.passenger_name || passengerName;
+                document.getElementById('confirm-flight').textContent = adminBookingData.flight_code || 'N/A';
+                
+                // Update baggage in confirmation
+                const baggageSelect = document.getElementById('admin-baggage');
+                const baggageText = baggageSelect.options[baggageSelect.selectedIndex].text;
+                document.getElementById('confirm-baggage').textContent = baggageText;
+                
+                document.getElementById('confirm-gate').textContent = adminBookingData.gate || 'TBA';
+                document.getElementById('confirm-seat').textContent = adminSelectedSeat || 'Not selected';
+                
+                // Move to next step
+                adminNextStep(2);
+            } else {
+                showNotification(data.message || '❌ Booking not found', 'error');
+            }
+        } catch (error) {
+            console.error('Error finding booking:', error);
+            button.innerHTML = adminOriginalButtonText;
+            button.disabled = false;
+            showNotification('❌ Error finding booking. Please try again.', 'error');
+        }
+    }
+
+    // Generate Seat Map
+    function generateAdminSeatMap() {
+        const seatGrid = document.getElementById('admin-seat-grid');
+        if (!seatGrid) return;
+        
+        seatGrid.innerHTML = '';
+        
+        const seatMapContainer = document.createElement('div');
+        seatMapContainer.className = 'seat-map-container';
+        seatMapContainer.style.margin = '20px 0';
+        
+        const legend = document.createElement('div');
+        legend.className = 'seat-legend';
+        legend.style.cssText = 'display: flex; gap: 20px; margin-bottom: 15px; flex-wrap: wrap;';
+        legend.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 20px; background: #10b981; border-radius: 4px;"></div>
+                <span>Available</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 20px; background: #ef4444; border-radius: 4px;"></div>
+                <span>Occupied</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 20px; background: #3b82f6; border-radius: 4px;"></div>
+                <span>Selected</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 20px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 4px;"></div>
+                <span>Premium</span>
+            </div>
+        `;
+        
+        const seatMapDiv = document.createElement('div');
+        seatMapDiv.className = 'seat-map';
+        seatMapDiv.id = 'admin-seat-map';
+        seatMapDiv.style.cssText = 'margin-top: 20px;';
+        seatMapDiv.innerHTML = '';
+        
+        // Premium Class Section
+        const premiumSection = document.createElement('div');
+        premiumSection.className = 'seat-section';
+        premiumSection.innerHTML = '<div class="seat-section-title">Premium Class</div>';
+        
+        const premiumRows = [1, 2];
+        premiumRows.forEach(row => {
+            const seatRow = document.createElement('div');
+            seatRow.className = 'seat-row';
+            seatRow.innerHTML = `<div class="seat-row-label">${row}</div>`;
+            
+            const seats = ['A', 'B', 'D', 'E'];
+            seats.forEach(letter => {
+                const seatNumber = `${row}${letter}`;
+                const isOccupied = Math.random() > 0.7;
+                const isSelected = adminSelectedSeat === seatNumber;
+                
+                const seat = document.createElement('div');
+                seat.className = `seat premium ${isOccupied ? 'occupied' : 'available'} ${isSelected ? 'selected' : ''}`;
+                seat.textContent = seatNumber;
+                seat.dataset.seat = seatNumber;
+                
+                if (!isOccupied) {
+                    seat.onclick = () => adminSelectSeat(seatNumber);
+                }
+                
+                if (letter === 'B') {
+                    seatRow.appendChild(seat);
+                    const aisle = document.createElement('div');
+                    aisle.className = 'seat aisle';
+                    aisle.style.width = '40px';
+                    seatRow.appendChild(aisle);
+                } else {
+                    seatRow.appendChild(seat);
+                }
+            });
+            
+            premiumSection.appendChild(seatRow);
+        });
+        
+        seatMapDiv.appendChild(premiumSection);
+        
+        // Economy Class Section
+        const economySection = document.createElement('div');
+        economySection.className = 'seat-section';
+        economySection.innerHTML = '<div class="seat-section-title">Economy Class</div>';
+        
+        const economyRows = Array.from({length: 8}, (_, i) => i + 3);
+        economyRows.forEach(row => {
+            const seatRow = document.createElement('div');
+            seatRow.className = 'seat-row';
+            seatRow.innerHTML = `<div class="seat-row-label">${row}</div>`;
+            
+            const seats = ['A', 'B', 'C', 'D', 'E', 'F'];
+            seats.forEach(letter => {
+                const seatNumber = `${row}${letter}`;
+                const isOccupied = Math.random() > 0.6;
+                const isSelected = adminSelectedSeat === seatNumber;
+                
+                const seat = document.createElement('div');
+                seat.className = `seat ${isOccupied ? 'occupied' : 'available'} ${isSelected ? 'selected' : ''}`;
+                seat.textContent = seatNumber;
+                seat.dataset.seat = seatNumber;
+                
+                if (!isOccupied) {
+                    seat.onclick = () => adminSelectSeat(seatNumber);
+                }
+                
+                if (letter === 'C') {
+                    seatRow.appendChild(seat);
+                    const aisle = document.createElement('div');
+                    aisle.className = 'seat aisle';
+                    aisle.style.width = '40px';
+                    seatRow.appendChild(aisle);
+                } else {
+                    seatRow.appendChild(seat);
+                }
+            });
+            
+            economySection.appendChild(seatRow);
+        });
+        
+        seatMapDiv.appendChild(economySection);
+        
+        // Add to container
+        seatMapContainer.appendChild(legend);
+        seatMapContainer.appendChild(seatMapDiv);
+        
+        // Add selected seat info
+        const selectedInfo = document.createElement('div');
+        selectedInfo.className = 'seat-selected-info';
+        selectedInfo.id = 'admin-seat-selected-info';
+        selectedInfo.style.cssText = 'margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px; display: none;';
+        selectedInfo.innerHTML = `
+            <h4 style="margin: 0 0 10px 0; color: #2c3e50;">
+                ✅ Seat Selected
+            </h4>
+            <p style="margin: 5px 0;"><strong>Seat Number:</strong> <span id="admin-selected-seat-number" class="badge bg-primary"></span></p>
+            <p style="margin: 5px 0;"><strong>Cabin Class:</strong> <span id="admin-selected-cabin">Economy</span></p>
+            <p style="margin: 0;"><strong>Additional Fee:</strong> $<span id="admin-selected-seat-fee">0</span></p>
+        `;
+        
+        seatMapContainer.appendChild(selectedInfo);
+        
+        // Clear existing and add new seat map
+        seatGrid.innerHTML = '';
+        seatGrid.appendChild(seatMapContainer);
+        
+        // If a seat is already selected, show info
+        if (adminSelectedSeat) {
+            adminUpdateSeatInfo(adminSelectedSeat);
+        }
+    }
+
+    function adminSelectSeat(seatNumber) {
+        adminSelectedSeat = seatNumber;
+        
+        // Remove selected class from all seats
+        document.querySelectorAll('#admin-seat-map .seat').forEach(seat => {
+            seat.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked seat
+        const seatElement = document.querySelector(`#admin-seat-map .seat[data-seat="${seatNumber}"]`);
+        if (seatElement) {
+            seatElement.classList.add('selected');
+            adminUpdateSeatInfo(seatNumber);
+        }
+        
+        // Update confirmation info
+        document.getElementById('confirm-seat').textContent = seatNumber;
+        
+        // Update baggage in confirmation
+        const baggageSelect = document.getElementById('admin-baggage');
+        const baggageText = baggageSelect.options[baggageSelect.selectedIndex].text;
+        document.getElementById('confirm-baggage').textContent = baggageText;
+    }
+
+    function adminUpdateSeatInfo(seatNumber) {
+        const infoDiv = document.getElementById('admin-seat-selected-info');
+        const seatNumberSpan = document.getElementById('admin-selected-seat-number');
+        const cabinSpan = document.getElementById('admin-selected-cabin');
+        const feeSpan = document.getElementById('admin-selected-seat-fee');
+        
+        if (infoDiv && seatNumberSpan && cabinSpan && feeSpan) {
+            seatNumberSpan.textContent = seatNumber;
+            
+            const row = parseInt(seatNumber.match(/\d+/)[0]);
+            let cabinClass = 'Economy';
+            let seatFee = 0;
+            
+            if (row <= 2) {
+                cabinClass = 'Premium';
+                seatFee = 50;
+            } else if (row <= 4) {
+                cabinClass = 'Extra Legroom';
+                seatFee = 30;
+            }
+            
+            cabinSpan.textContent = cabinClass;
+            feeSpan.textContent = seatFee;
+            
+            infoDiv.style.display = 'block';
+        }
+    }
+
+    // Complete Check-in
+    async function adminCompleteCheckin() {
+        if (!adminSelectedSeat) {
+            showNotification('Please select a seat', 'error');
+            return;
+        }
+        
+        const baggage = document.getElementById('admin-baggage').value;
+        const baggageWeight = baggage === '20kg' ? 20 : baggage === '32kg' ? 32 : 0;
+        
+        const button = event?.target || document.querySelector('#admin-step-content-3 .btn-success');
+        adminOriginalButtonText = button.innerHTML;
+        button.innerHTML = '⏳ Processing...';
+        button.disabled = true;
+        
+        try {
+            // First, try to check if boarding pass already exists
+            const checkResponse = await fetch(`/api/passenger-services/check-boarding-pass/${adminBookingData.booking_reference}`);
+            let checkData;
+            
+            try {
+                checkData = await checkResponse.json();
+            } catch (e) {
+                checkData = { success: false, message: 'No boarding pass found' };
+            }
+            
+            if (checkData.success && checkData.boardingPass) {
+                // Passenger already has boarding pass
+                button.innerHTML = adminOriginalButtonText;
+                button.disabled = false;
+                
+                const userChoice = confirm(`⚠️ Passenger already checked in!\n\nPassenger: ${adminBookingData.passenger_name}\nFlight: ${adminBookingData.flight_code}\nSeat: ${checkData.boardingPass.seat_number}\n\nClick OK to view existing boarding pass, or Cancel to generate a new one.`);
+                
+                if (userChoice) {
+                    showNotification('Showing existing boarding pass', 'info');
+                    populateAdminBoardingPass(checkData.boardingPass);
+                    adminNextStep(4);
+                } else {
+                    showNotification('Generating new boarding pass...', 'info');
+                    await generateNewBoardingPass(baggage, baggageWeight);
+                }
+            } else {
+                // No existing boarding pass, generate new one
+                await generateNewBoardingPass(baggage, baggageWeight);
+            }
+            
+        } catch (error) {
+            console.error('Error completing check-in:', error);
+            const button = document.querySelector('#admin-step-content-3 .btn-success');
+            if (button) {
+                button.innerHTML = adminOriginalButtonText;
+                button.disabled = false;
+            }
+            showNotification('❌ Error during check-in', 'error');
+        }
+    }
+
+    // Helper function to generate new boarding pass
+    async function generateNewBoardingPass(baggage, baggageWeight) {
+        try {
+            const response = await fetch('/api/passenger-services/generate-boarding-pass', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    booking_reference: adminBookingData.booking_reference,
+                    passenger_name: adminBookingData.passenger_name,
+                    flight_code: adminBookingData.flight_code,
+                    seat_number: adminSelectedSeat,
+                    baggage_type: baggage,
+                    baggage_weight: baggageWeight,
+                    force_generate: true
+                })
+            });
+            
+            const data = await response.json();
+            
+            const button = document.querySelector('#admin-step-content-3 .btn-success');
+            if (button) {
+                button.innerHTML = adminOriginalButtonText;
+                button.disabled = false;
+            }
+            
+            if (data.success) {
+                showNotification('✅ Boarding pass generated successfully!', 'success');
+                
+                // Populate boarding pass
+                populateAdminBoardingPass(data.boardingPass);
+                adminNextStep(4);
+            } else {
+                showNotification(data.message || '❌ Error generating boarding pass', 'error');
+            }
+        } catch (error) {
+            console.error('Error generating boarding pass:', error);
+            const button = document.querySelector('#admin-step-content-3 .btn-success');
+            if (button) {
+                button.innerHTML = adminOriginalButtonText;
+                button.disabled = false;
+            }
+            showNotification('❌ Error generating boarding pass', 'error');
+        }
+    }
+
+    // Function to update baggage in database
+    async function updateBaggageInDB(bookingRef, baggageType, baggageWeight) {
+        try {
+            const response = await fetch('/api/passenger-services/update-baggage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    booking_reference: bookingRef,
+                    baggage_type: baggageType,
+                    baggage_weight: baggageWeight
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                console.log('Baggage updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating baggage:', error);
+        }
+    }
+
+    function populateAdminBoardingPass(bp) {
+        if (!bp) {
+            // Use adminBookingData if no boarding pass data
+            bp = {
+                passenger: adminBookingData.passenger_name,
+                flight: adminBookingData.flight_code,
+                date: adminBookingData.flight_date_display || new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                time: adminBookingData.departure_time || '09:00',
+                seat: adminSelectedSeat || 'N/A',
+                gate: adminBookingData.gate || 'TBA',
+                boardingTime: calculateBoardingTime(adminBookingData.departure_time || '09:00'),
+                barcode: `BP${Date.now()}${Math.floor(Math.random() * 1000)}`,
+                origin: adminBookingData.origin || 'HKG',
+                destination: adminBookingData.destination || 'NRT',
+                cabinClass: adminSelectedSeat && parseInt(adminSelectedSeat) <= 2 ? 'Premium' : 'Economy'
+            };
+        }
+        
+        // Update boarding pass display
+        document.getElementById('bp-passenger').textContent = bp.passenger || adminBookingData.passenger_name;
+        document.getElementById('bp-flight').textContent = bp.flight || adminBookingData.flight_code;
+        document.getElementById('bp-seat').textContent = bp.seat || adminSelectedSeat || 'N/A';
+        document.getElementById('bp-gate').textContent = bp.gate || adminBookingData.gate || 'TBA';
+        document.getElementById('bp-barcode').textContent = `|| ${bp.barcode || adminBookingData.booking_reference} ||`;
+        
+        // Format dates
+        if (bp.date) {
+            const date = new Date(bp.date);
+            const shortDate = date.toLocaleDateString('en-US', {
+                day: 'numeric',
+                month: 'short'
+            }).toUpperCase();
+            document.getElementById('bp-date').textContent = shortDate;
+        }
+        
+        if (bp.time) {
+            document.getElementById('bp-time').textContent = bp.time;
+            // Calculate boarding time (30 minutes before departure)
+            const [hours, minutes] = bp.time.split(':').map(Number);
+            const totalMinutes = hours * 60 + minutes - 30;
+            const boardingHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+            const boardingMinutes = (totalMinutes % 60).toString().padStart(2, '0');
+            document.getElementById('bp-boarding').textContent = `${boardingHours}:${boardingMinutes}`;
+        }
+    }
+
+    // Calculate boarding time helper
+    function calculateBoardingTime(departureTime) {
+        if (!departureTime) return '08:30';
+        const [hours, minutes] = departureTime.split(':').map(Number);
+        const totalMinutes = hours * 60 + minutes - 30;
+        const boardingHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+        const boardingMinutes = (totalMinutes % 60).toString().padStart(2, '0');
+        return `${boardingHours}:${boardingMinutes}`;
+    }
+
+    // Print Boarding Pass
+    function adminPrintBoardingPass() {
+        const printWindow = window.open('', '_blank');
+        const boardingPass = document.querySelector('.boarding-pass').outerHTML;
+        const passengerName = adminBookingData?.passenger_name || 'Passenger';
+        
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Boarding Pass - ${passengerName}</title>
+                <style>
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        margin: 0; 
+                        padding: 20px; 
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        background: white;
+                    }
+                    .boarding-pass { 
+                        border: 2px solid #333; 
+                        padding: 20px; 
+                        max-width: 400px; 
+                        margin: 0 auto; 
+                        background: white; 
+                        color: #333;
+                    }
+                    .boarding-pass * {
+                        color: #333 !important;
+                        background: white !important;
+                    }
+                    @media print {
+                        body { 
+                            padding: 0; 
+                            display: block;
+                        }
+                        .boarding-pass { 
+                            border: none; 
+                            box-shadow: none; 
+                            margin: 0;
+                            max-width: none;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                ${boardingPass}
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        
+        // Wait for content to load, then trigger print
+        setTimeout(() => {
+            printWindow.print();
+            setTimeout(() => {
+                printWindow.close();
+            }, 500);
+        }, 500);
+    }
+
+    // Download PDF
+    function adminDownloadPDF() {
+        // Use jsPDF if available
+        if (typeof window.jspdf !== 'undefined') {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Get boarding pass data
+            const passenger = document.getElementById('bp-passenger').textContent;
+            const flight = document.getElementById('bp-flight').textContent;
+            const seat = document.getElementById('bp-seat').textContent;
+            const gate = document.getElementById('bp-gate').textContent;
+            const date = document.getElementById('bp-date').textContent;
+            const time = document.getElementById('bp-time').textContent;
+            const boarding = document.getElementById('bp-boarding').textContent;
+            const barcode = document.getElementById('bp-barcode').textContent;
+            
+            // Set up document
+            doc.setFontSize(20);
+            doc.setTextColor(59, 130, 246); // Blue
+            doc.text('✈️ HKAP Airlines', 105, 20, { align: 'center' });
+            
+            doc.setFontSize(16);
+            doc.setTextColor(0, 0, 0);
+            doc.text('BOARDING PASS', 105, 30, { align: 'center' });
+            
+            // Draw border
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.5);
+            doc.rect(15, 35, 180, 100);
+            
+            // Passenger info
+            doc.setFontSize(12);
+            doc.text('PASSENGER:', 20, 50);
+            doc.setFont(undefined, 'bold');
+            doc.text(passenger, 60, 50);
+            
+            doc.setFont(undefined, 'normal');
+            doc.text('FLIGHT:', 20, 60);
+            doc.setFont(undefined, 'bold');
+            doc.text(flight, 60, 60);
+            
+            doc.setFont(undefined, 'normal');
+            doc.text('DATE:', 20, 70);
+            doc.setFont(undefined, 'bold');
+            doc.text(date, 60, 70);
+            
+            doc.setFont(undefined, 'normal');
+            doc.text('TIME:', 100, 70);
+            doc.setFont(undefined, 'bold');
+            doc.text(time, 130, 70);
+            
+            // Seat and gate
+            doc.setFont(undefined, 'normal');
+            doc.text('SEAT:', 20, 80);
+            doc.setFont(undefined, 'bold');
+            doc.text(seat, 60, 80);
+            
+            doc.setFont(undefined, 'normal');
+            doc.text('GATE:', 100, 80);
+            doc.setFont(undefined, 'bold');
+            doc.text(gate, 130, 80);
+            
+            // Boarding time
+            doc.setFont(undefined, 'normal');
+            doc.text('BOARDING TIME:', 20, 90);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(220, 38, 38); // Red
+            doc.text(boarding, 70, 90);
+            
+            // Barcode area
+            doc.setDrawColor(200);
+            doc.setFillColor(240, 240, 240);
+            doc.rect(15, 95, 180, 15, 'F');
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text('SCAN AT GATE', 105, 102, { align: 'center' });
+            doc.setFontSize(10);
+            doc.setFont('courier', 'bold');
+            doc.setTextColor(0, 0, 0);
+            doc.text(barcode, 105, 110, { align: 'center' });
+            
+            // Footer
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(100, 100, 100);
+            doc.text('Generated by HKAP Airlines Admin', 105, 140, { align: 'center' });
+            
+            // Save the PDF
+            doc.save(`BoardingPass_${flight}_${passenger}.pdf`);
+            showNotification('✅ PDF downloaded successfully!', 'success');
+        } else {
+            // Fallback to text download
+            adminDownloadText();
+        }
+    }
+
+    // Fallback text download
+    function adminDownloadText() {
+        const passenger = document.getElementById('bp-passenger').textContent;
+        const flight = document.getElementById('bp-flight').textContent;
+        const seat = document.getElementById('bp-seat').textContent;
+        const gate = document.getElementById('bp-gate').textContent;
+        const date = document.getElementById('bp-date').textContent;
+        const time = document.getElementById('bp-time').textContent;
+        const boarding = document.getElementById('bp-boarding').textContent;
+        const barcode = document.getElementById('bp-barcode').textContent;
+        
+        const content = `BOARDING PASS - HKAP AIRLINES
+===============================
+Passenger: ${passenger}
+Flight: ${flight}
+Date: ${date}
+Time: ${time}
+Gate: ${gate}
+Seat: ${seat}
+Boarding Time: ${boarding}
+Barcode: ${barcode}
+===============================
+Generated: ${new Date().toLocaleString()}
+Thank you for flying with HKAP Airlines!`;
+        
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `BoardingPass_${flight}_${passenger}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showNotification('📄 Text file downloaded successfully!', 'info');
+    }
+
+    // Reset Check-in
+    function adminResetCheckin() {
+        adminBookingData = null;
+        adminSelectedSeat = null;
+        adminCurrentStep = 1;
+        adminFlightSeats = [];
+        
+        // Clear inputs
+        document.getElementById('admin-booking-ref').value = '';
+        document.getElementById('admin-passenger-name').value = '';
+        document.getElementById('admin-baggage').value = 'none';
+        
+        // Reset UI
+        adminShowStep(1);
+        
+        // Clear any seat map
+        const seatGrid = document.getElementById('admin-seat-grid');
+        if (seatGrid) {
+            seatGrid.innerHTML = 'Please find a booking first to view seat map.';
+        }
+    }
+
+    // Load passengers
+    async function loadPassengers() {
+        try {
+            const response = await fetch('/api/passenger-services/passengers');
+            const data = await response.json();
+            
+            if (data.success) {
+                passengersData = data.passengers || [];
+                displayPassengers(passengersData);
+            } else {
+                console.error('Failed to load passengers:', data.message);
+                showNotification('Failed to load passengers: ' + (data.message || 'Unknown error'), 'error');
+            }
+        } catch (error) {
+            console.error('Error loading passengers:', error);
+            showNotification('Error loading passengers: ' + error.message, 'error');
+        }
+    }
+    
+    // Display passengers
+    function displayPassengers(passengers) {
+  const tbody = document.getElementById('passengersTableBody');
+  if (!tbody) return;
+  
+  if (!passengers || passengers.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 40px;">
+          No passengers found
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tbody.innerHTML = passengers.map(passenger => {
+    // Use passenger_id as primary ID, fall back to user_id
+    const passengerId = passenger.passenger_id || passenger.user_id || 'N/A';
+    const fullName = passenger.full_name || 'Unknown';
+    const passport = passenger.passport_number || 'N/A';
+    const flightCode = passenger.flight_code || 'N/A';
+    const seat = passenger.seat_number || 'N/A';
+    const status = passenger.status || 'pending';
+    const checkinTime = passenger.check_in_time || 'N/A';
+    
+    // Create safe passenger ID for JavaScript (escape quotes)
+    const safePassengerId = passengerId.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    
+    return `
+      <tr>
+        <td>${passengerId}</td>
+        <td>${fullName}</td>
+        <td>${passport}</td>
+        <td>${flightCode}</td>
+        <td>${seat}</td>
+        <td>
+          <span class="badge ${getStatusBadgeClass(status)}">
+            ${status}
+          </span>
+        </td>
+        <td>${checkinTime}</td>
+        <td>
+          <div class="action-buttons">
+            <button class="btn btn-sm btn-primary" onclick="editPassenger('${safePassengerId}')">
+              ✏️ Edit
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="deletePassenger('${safePassengerId}')">
+              🗑️ Delete
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+    // Load bookings 
+    async function loadBookings() {
+        try {
+            const response = await fetch('/api/passenger-services/bookings');
+            const data = await response.json();
+            
+            if (data.success) {
+                bookingsData = data.bookings || [];
+                displayBookings(bookingsData);
+            } else {
+                console.error('Failed to load bookings:', data.message);
+                showNotification('Failed to load bookings: ' + (data.message || 'Unknown error'), 'error');
+            }
+        } catch (error) {
+            console.error('Error loading bookings:', error);
+            showNotification('Error loading bookings: ' + error.message, 'error');
+        }
+    }
+
+    // Display bookings
+    function displayBookings(bookings) {
+        const tbody = document.getElementById('bookingsTableBody');
+        if (!tbody) return;
+        
+        if (!bookings || bookings.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 40px;">
+                        No bookings found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = bookings.map(booking => {
+            let flightDate = 'N/A';
+            try {
+                if (booking.flight_date) {
+                    const date = new Date(booking.flight_date);
+                    flightDate = date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                }
+            } catch (e) {
+                flightDate = 'Invalid date';
+            }
+            
+            const bookingRef = booking.booking_reference || 'N/A';
+            const passengerName = booking.passenger_name || 'Unknown';
+            const flightCode = booking.flight_code || 'N/A';
+            const seat = booking.seat_number || 'N/A';
+            const cabinClass = booking.cabin_class || 'Economy';
+            const status = booking.booking_status || 'pending';
+            const paymentStatus = booking.payment_status || 'unpaid';
+            const amount = booking.total_amount || 0;
+            const bookingId = booking.booking_id || '';
+            
+            return `
+                <tr>
+                    <td><strong>${bookingRef}</strong></td>
+                    <td>${passengerName}</td>
+                    <td>${flightCode}</td>
+                    <td>${flightDate}</td>
+                    <td>${seat}</td>
+                    <td>${cabinClass}</td>
+                    <td>
+                        <span class="badge ${getBookingStatusBadgeClass(status)}">
+                            ${status}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${paymentStatus === 'paid' ? 'badge-success' : 'badge-danger'}">
+                            ${paymentStatus}
+                        </span>
+                    </td>
+                    <td>$${amount.toFixed(2)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-warning" onclick="updateBooking('${bookingId}')">
+                                📝 Update
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteBooking('${bookingId}')">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // Delete booking
+    async function deleteBooking(bookingId) {
+        if (!confirm('Are you sure you want to delete this booking?')) return;
+        
+        try {
+            const response = await fetch(`/api/passenger-services/bookings/${bookingId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification('✅ Booking deleted successfully', 'success');
+                loadBookings();
+            } else {
+                showNotification('❌ ' + (data.message || 'Error deleting booking'), 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting booking:', error);
+            showNotification('❌ Error deleting booking', 'error');
+        }
+    }
+
+    // Delete passenger
+    async function deletePassenger(passengerId) {
+        console.log('Deleting passenger:', passengerId);
+        
+        try {
+            const response = await fetch(`/api/passenger-services/passengers/${passengerId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification('✅ Passenger deleted successfully', 'success');
+                loadPassengers();
+            } else {
+                showNotification('❌ ' + (data.message || 'Error deleting passenger'), 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting passenger:', error);
+            showNotification('❌ Error deleting passenger: ' + error.message, 'error');
+        }
+    }
+
+    // Edit passenger
+   async function editPassenger(passengerId) {
+  console.log('Editing passenger:', passengerId);
+  
+  try {
+    const response = await fetch(`/api/passenger-services/passengers/${encodeURIComponent(passengerId)}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      const passenger = data.passenger;
+      
+      document.getElementById('edit-passenger-id').value = passengerId;
+      
+      let firstName = passenger.first_name || '';
+      let lastName = passenger.last_name || '';
+      
+      // Extract names from full name if needed
+      if (!firstName && passenger.full_name) {
+        const nameParts = passenger.full_name.split(' ');
+        firstName = nameParts[0] || '';
+        lastName = nameParts.slice(1).join(' ') || '';
+      }
+      
+      document.getElementById('edit-first-name').value = firstName;
+      document.getElementById('edit-last-name').value = lastName;
+      document.getElementById('edit-passport').value = passenger.passport_number || '';
+      document.getElementById('edit-status').value = passenger.status || 'active';
+      
+      showEditPassengerModal();
+    } else {
+      showNotification(data.message || 'Failed to load passenger details', 'error');
+    }
+  } catch (error) {
+    console.error('Error loading passenger details:', error);
+    showNotification('Error loading passenger details: ' + error.message, 'error');
+  }
+}
+
+    // Update booking (placeholder)
+    async function updateBooking(bookingId) {
+        showNotification('Update booking feature coming soon. Booking ID: ' + bookingId, 'info');
+    }
+
+    // Helper functions
+    function getStatusBadgeClass(status) {
+        if (!status) return 'badge-secondary';
+        
+        const statusLower = status.toLowerCase();
+        if (statusLower.includes('checked')) return 'badge-info';
+        if (statusLower === 'boarded') return 'badge-success';
+        if (statusLower === 'pending' || statusLower === 'confirmed') return 'badge-warning';
+        if (statusLower === 'cancelled') return 'badge-danger';
+        return 'badge-secondary';
+    }
+
+    function getBookingStatusBadgeClass(status) {
+        if (!status) return 'badge-secondary';
+        
+        const statusLower = status.toLowerCase();
+        if (statusLower.includes('checked')) return 'badge-info';
+        if (statusLower === 'boarded') return 'badge-success';
+        if (statusLower === 'pending' || statusLower === 'confirmed') return 'badge-warning';
+        if (statusLower === 'cancelled') return 'badge-danger';
+        return 'badge-secondary';
+    }
+
+    // Modal functions
+    function showAddPassengerModal() {
+        document.getElementById('addPassengerModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeAddPassengerModal() {
+        document.getElementById('addPassengerModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        const form = document.getElementById('addPassengerForm');
+        if (form) form.reset();
+    }
+
+    function showEditPassengerModal() {
+        document.getElementById('editPassengerModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeEditPassengerModal() {
+        document.getElementById('editPassengerModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        const form = document.getElementById('editPassengerForm');
+        if (form) form.reset();
+    }
+
+    function showFlightPassengersModal() {
+        document.getElementById('flightPassengersModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeFlightPassengersModal() {
+        document.getElementById('flightPassengersModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    // Form handlers
+    async function handleAddPassenger(event) {
+        event.preventDefault();
+        
+        const firstName = document.getElementById('add-first-name').value;
+        const lastName = document.getElementById('add-last-name').value;
+        const passport = document.getElementById('add-passport').value;
+        const nationality = document.getElementById('add-nationality').value;
+        const dob = document.getElementById('add-dob').value;
+        const email = document.getElementById('add-email').value;
+        const phone = document.getElementById('add-phone').value;
+        
+        if (!firstName || !lastName || !passport || !nationality || !dob || !email) {
+            showNotification('Please fill all required fields', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/passenger-services/passengers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    first_name: firstName,
+                    last_name: lastName,
+                    passport_number: passport,
+                    nationality: nationality,
+                    date_of_birth: dob,
+                    email: email,
+                    phone_number: phone
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification('Passenger added successfully. Temporary password: ' + (data.temporary_password || 'N/A'), 'success');
+                closeAddPassengerModal();
+                loadPassengers();
+            } else {
+                showNotification(data.message || 'Error adding passenger', 'error');
+            }
+        } catch (error) {
+            console.error('Error adding passenger:', error);
+            showNotification('Error adding passenger', 'error');
+        }
+    }
+
+    // View flight passengers
+    async function viewFlightPassengers(flightCode) {
+        currentFlightCode = flightCode;
+        
+        try {
+            const response = await fetch(`/api/passenger-services/flights/${flightCode}/passengers`);
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('flightPassengersTitle').textContent = `Passengers - ${flightCode}`;
+                
+                const tbody = document.getElementById('flightPassengersBody');
+                if (data.passengers && data.passengers.length > 0) {
+                    tbody.innerHTML = data.passengers.map(p => `
+                        <tr>
+                            <td>${p.full_name || 'Unknown'}</td>
+                            <td>${p.seat_number || 'N/A'}</td>
+                            <td>${p.cabin_class || 'Economy'}</td>
+                            <td>
+                                <span class="badge ${getStatusBadgeClass(p.status)}">
+                                    ${p.status || 'unknown'}
+                                </span>
+                            </td>
+                            <td>${p.check_in_time || 'N/A'}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 40px;">
+                                No passengers found for this flight
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                showFlightPassengersModal();
+            }
+        } catch (error) {
+            console.error('Error loading flight passengers:', error);
+            showNotification('Error loading flight passengers', 'error');
+        }
+    }
+
+    // Search passengers
+    function searchPassengers() {
+        const searchTerm = document.getElementById('passenger-search').value.toLowerCase();
+        const filterStatus = document.getElementById('passenger-filter').value;
+        
+        let filteredPassengers = passengersData;
+        
+        if (searchTerm) {
+            filteredPassengers = filteredPassengers.filter(p => 
+                (p.full_name && p.full_name.toLowerCase().includes(searchTerm)) ||
+                (p.passport_number && p.passport_number.toLowerCase().includes(searchTerm)) ||
+                (p.booking_reference && p.booking_reference.toLowerCase().includes(searchTerm)) ||
+                (p.flight_code && p.flight_code.toLowerCase().includes(searchTerm))
+            );
+        }
+        
+        if (filterStatus) {
+            filteredPassengers = filteredPassengers.filter(p => {
+                const passengerStatus = p.status ? p.status.toLowerCase() : '';
+                const filter = filterStatus.toLowerCase();
+                return passengerStatus.includes(filter) || 
+                       (filter === 'pending' && (passengerStatus === 'pending' || passengerStatus === 'confirmed')) ||
+                       (filter === 'checked_in' && (passengerStatus.includes('checked')));
+            });
+        }
+        
+        displayPassengers(filteredPassengers);
+    }
+
+    // Refresh functions
+    function refreshPassengers() {
+        loadPassengers();
+        showNotification('Passengers list refreshed', 'info');
+    }
+
+    function refreshBookings() {
+        loadBookings();
+        showNotification('Bookings list refreshed', 'info');
+    }
+
+    // View booking details
+    function viewBookingDetails(bookingRef) {
+        window.open(`/passenger/boarding-pass/${bookingRef}`, '_blank');
+    }
+
+    // Update booking status (placeholder)
+    function updateBookingStatus(bookingId) {
+        showNotification('Update booking status feature coming soon', 'info');
+    }
+
+    // Notification function
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notification => notification.remove());
+        
+        // Create notification
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            padding: 15px 20px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            min-width: 300px;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+        
+        // Set color
+        const colors = {
+            success: '#10b981',
+            error: '#ef4444',
+            warning: '#f59e0b',
+            info: '#3b82f6'
+        };
+        notification.style.background = colors[type] || colors.info;
+        notification.style.borderLeft = `4px solid ${colors[type] || colors.info}20`;
+        
+        notification.innerHTML = `
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0; margin-left: 15px; line-height: 1;">×</button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    // Add CSS for slideIn animation
+    if (!document.querySelector('#notification-animation')) {
+        const style = document.createElement('style');
+        style.id = 'notification-animation';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load initial data
+        loadPassengers();
+        
+        // Attach form handlers
+        const addPassengerForm = document.getElementById('addPassengerForm');
+        if (addPassengerForm) {
+            addPassengerForm.addEventListener('submit', handleAddPassenger);
+        }
+        
+        const editPassengerForm = document.getElementById('editPassengerForm');
+        if (editPassengerForm) {
+            editPassengerForm.addEventListener('submit', handleEditPassenger);
+        }
+        
+        // Initialize admin check-in
+        adminShowStep(1);
+        
+        // Add baggage change listener
+        const baggageSelect = document.getElementById('admin-baggage');
+        if (baggageSelect) {
+            baggageSelect.addEventListener('change', function() {
+                const baggageText = this.options[this.selectedIndex].text;
+                if (document.getElementById('confirm-baggage')) {
+                    document.getElementById('confirm-baggage').textContent = baggageText;
+                }
+            });
+        }
+    });
+
+    // Load jsPDF if needed
+    if (typeof window !== 'undefined' && !window.jspdf) {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = () => {
+            console.log('jsPDF loaded successfully');
+            window.jspdf = window.jspdf || window.jspdf;
+        };
+        document.head.appendChild(script);
+    }
+
+    // Export functions to window
+    window.showTab = showTab;
+    window.adminFindBooking = adminFindBooking;
+    window.adminSelectSeat = adminSelectSeat;
+    window.adminNextStep = adminNextStep;
+    window.adminPreviousStep = adminPreviousStep;
+    window.adminCompleteCheckin = adminCompleteCheckin;
+    window.adminPrintBoardingPass = adminPrintBoardingPass;
+    window.adminDownloadPDF = adminDownloadPDF;
+    window.adminDownloadText = adminDownloadText;
+    window.adminResetCheckin = adminResetCheckin;
+    window.showAddPassengerModal = showAddPassengerModal;
+    window.closeAddPassengerModal = closeAddPassengerModal;
+    window.editPassenger = editPassenger;
+    window.deletePassenger = deletePassenger;
+    window.viewFlightPassengers = viewFlightPassengers;
+    window.searchPassengers = searchPassengers;
+    window.refreshPassengers = refreshPassengers;
+    window.refreshBookings = refreshBookings;
+    window.viewBookingDetails = viewBookingDetails;
+    window.updateBookingStatus = updateBookingStatus;
+    window.showNotification = showNotification;
+    window.closeEditPassengerModal = closeEditPassengerModal;
+    window.closeFlightPassengersModal = closeFlightPassengersModal;
+    window.handleAddPassenger = handleAddPassenger;
+    window.handleEditPassenger = handleEditPassenger;
+    window.updateBooking = updateBooking;
+    window.deleteBooking = deleteBooking;
+</script>
+</body>
+</html>

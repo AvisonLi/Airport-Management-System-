@@ -1014,16 +1014,117 @@ function prefillPassengerInfo(booking) {
     }
 }
 
-    // Download Boarding Pass Function
-    function downloadBoardingPass() {
+    // Download Boarding Pass Function - FIXED for PDF
+function downloadBoardingPass() {
+    // Try to use jsPDF if available
+    const { jsPDF } = window.jspdf || {};
+    
+    if (jsPDF) {
+        // Generate PDF
+        const doc = new jsPDF();
+        
         const passenger = document.getElementById('bp-passenger').textContent;
         const flight = document.getElementById('bp-flight').textContent;
         const seat = document.getElementById('bp-seat').textContent;
         const gate = document.getElementById('bp-gate').textContent;
         const date = document.getElementById('bp-date').textContent;
         const time = document.getElementById('bp-time').textContent;
+        const boarding = document.getElementById('bp-boarding').textContent;
+        const origin = document.getElementById('bp-origin').textContent;
+        const destination = document.getElementById('bp-destination').textContent;
+        const cabinClass = document.getElementById('bp-class').textContent;
         
-        const content = `BOARDING PASS\n\nPassenger: ${passenger}\nFlight: ${flight}\nDate: ${date}\nTime: ${time}\nGate: ${gate}\nSeat: ${seat}\n\nThank you for flying with HKAP Airlines!`;
+        // Add airline logo and title
+        doc.setFontSize(24);
+        doc.setTextColor(59, 130, 246); // Blue color
+        doc.text('✈️ HKAP Airlines', 105, 20, { align: 'center' });
+        
+        doc.setFontSize(16);
+        doc.setTextColor(0, 0, 0);
+        doc.text('BOARDING PASS', 105, 30, { align: 'center' });
+        
+        // Draw border
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.5);
+        doc.rect(15, 35, 180, 80);
+        
+        // Passenger and flight info
+        doc.setFontSize(12);
+        doc.text('PASSENGER:', 20, 50);
+        doc.setFont(undefined, 'bold');
+        doc.text(passenger, 60, 50);
+        
+        doc.setFont(undefined, 'normal');
+        doc.text('FLIGHT:', 20, 60);
+        doc.setFont(undefined, 'bold');
+        doc.text(flight, 60, 60);
+        
+        // Route
+        doc.setFont(undefined, 'normal');
+        doc.text('FROM:', 20, 70);
+        doc.setFont(undefined, 'bold');
+        doc.text(origin, 60, 70);
+        
+        doc.setFont(undefined, 'normal');
+        doc.text('TO:', 110, 70);
+        doc.setFont(undefined, 'bold');
+        doc.text(destination, 130, 70);
+        
+        // Details section
+        doc.setDrawColor(200);
+        doc.line(15, 80, 195, 80);
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text('DATE', 20, 90);
+        doc.text('TIME', 70, 90);
+        doc.text('GATE', 120, 90);
+        doc.text('SEAT', 170, 90);
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text(date, 20, 100);
+        doc.text(time, 70, 100);
+        doc.text(gate, 120, 100);
+        doc.text(seat, 170, 100);
+        
+        // Boarding time
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text('BOARDING TIME:', 20, 115);
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(220, 38, 38); // Red color
+        doc.text(boarding, 70, 115);
+        
+        // Barcode area
+        doc.setDrawColor(0);
+        doc.setFillColor(240, 240, 240);
+        doc.rect(15, 125, 180, 15, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text('SCAN AT GATE', 105, 132, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('courier', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text(`|| ${bookingData?.bookingRef || 'BARCODE'} ||`, 105, 140, { align: 'center' });
+        
+        // Save PDF
+        doc.save(`BoardingPass_${flight}_${passenger}.pdf`);
+        showBootstrapAlert('Boarding pass downloaded as PDF!', 'success');
+    } else {
+        // Fallback to text download
+        const passenger = document.getElementById('bp-passenger').textContent;
+        const flight = document.getElementById('bp-flight').textContent;
+        const seat = document.getElementById('bp-seat').textContent;
+        const gate = document.getElementById('bp-gate').textContent;
+        const date = document.getElementById('bp-date').textContent;
+        const time = document.getElementById('bp-time').textContent;
+        const boarding = document.getElementById('bp-boarding').textContent;
+        const origin = document.getElementById('bp-origin').textContent;
+        const destination = document.getElementById('bp-destination').textContent;
+        
+        const content = `BOARDING PASS\n\nPassenger: ${passenger}\nFlight: ${flight}\nDate: ${date}\nTime: ${time}\nGate: ${gate}\nSeat: ${seat}\nBoarding Time: ${boarding}\nRoute: ${origin} to ${destination}\n\nThank you for flying with HKAP Airlines!`;
         
         const blob = new Blob([content], { type: 'text/plain' });
         const url = window.URL.createObjectURL(blob);
@@ -1035,8 +1136,22 @@ function prefillPassengerInfo(booking) {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         
-        showBootstrapAlert('Boarding pass downloaded successfully!', 'success');
+        showBootstrapAlert('Text file downloaded. For PDF, please install jsPDF library.', 'info');
     }
+}
+
+// Add jsPDF to passenger check-in page
+if (typeof window !== 'undefined') {
+    // Load jsPDF if not already loaded
+    if (!window.jspdf) {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = () => {
+            console.log('jsPDF loaded for passenger check-in');
+        };
+        document.head.appendChild(script);
+    }
+}
 
     // Initialize Event Listeners
     document.addEventListener('DOMContentLoaded', function() {
