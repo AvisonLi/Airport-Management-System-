@@ -3760,3 +3760,525 @@ app.get('/api/crew-stats', requireAdminAuth, async (req, res) => {
     res.json({ success: false, message: 'Error fetching crew statistics' });
   }
 });
+
+// ============================================
+// CREW MANAGEMENT API ROUTES (COMPLETE SET)
+// ============================================
+
+// Get all crew members
+app.get('/api/crew', requireAdminAuth, async (req, res) => {
+  try {
+    const crewCollection = getCollection(collections.crewMembers);
+    const crew = await crewCollection.find({}).toArray();
+    
+    // Calculate tasks today for each crew member
+    const groundServicesCollection = getCollection(collections.groundServices);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const crewWithTasks = await Promise.all(crew.map(async (crewMember) => {
+      const tasksToday = await groundServicesCollection.countDocuments({
+        assigned_crew: crewMember.crew_id,
+        created_at: { $gte: today }
+      });
+      
+      return {
+        ...crewMember,
+        tasks_completed_today: tasksToday,
+        total_tasks_completed: crewMember.total_tasks_completed || 0
+      };
+    }));
+    
+    res.json({ success: true, crew: crewWithTasks });
+  } catch (error) {
+    console.error('Error fetching crew:', error);
+    res.status(500).json({ success: false, message: 'Error fetching crew: ' + error.message });
+  }
+});
+
+// Get specific crew member
+app.get('/api/crew/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const crewCollection = getCollection(collections.crewMembers);
+    const crew = await crewCollection.findOne({ crew_id: req.params.id });
+    
+    if (!crew) {
+      return res.status(404).json({ success: false, message: 'Crew member not found' });
+    }
+    
+    res.json({ success: true, crew: crew });
+  } catch (error) {
+    console.error('Error fetching crew member:', error);
+    res.status(500).json({ success: false, message: 'Error fetching crew member' });
+  }
+});
+
+// Create new crew member - FIXED VERSION
+app.post('/api/crew', requireAdminAuth, async (req, res) => {
+  try {
+    console.log('Received crew creation request:', req.body);
+    
+    const { 
+      full_name, 
+      crew_type, 
+      qualification, 
+      contact_number, 
+      status = 'available',
+      shift_start = '08:00',
+      shift_end = '16:00'
+    } = req.body;
+    
+    // Validation
+    if (!full_name || !crew_type || !qualification || !contact_number) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: full_name, crew_type, qualification, contact_number' 
+      });
+    }
+    
+    const crewCollection = getCollection(collections.crewMembers);
+    
+    // Generate crew ID based on type
+    const crewPrefix = {
+      'cleaning': 'CC',
+      'fueling': 'FC', 
+      'catering': 'CT',
+      'maintenance': 'MC',
+      'baggage': 'BC',
+      'pushback': 'PC'
+    }[crew_type] || 'RC';
+    
+    const newCrew = {
+      crew_id: generateId(`${crewPrefix}-`),
+      employee_id: generateId('EMP-'),
+      full_name: full_name.trim(),
+      crew_type: crew_type,
+      qualification: qualification.trim(),
+      contact_number: contact_number.trim(),
+      status: status,
+      shift_start: shift_start,
+      shift_end: shift_end,
+      tasks_completed_today: 0,
+      total_tasks_completed: 0,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+    
+    console.log('Creating new crew member:', newCrew);
+    
+    const result = await crewCollection.insertOne(newCrew);
+    
+    if (result.acknowledged) {
+      res.status(201).json({ 
+        success: true, 
+        message: 'Crew member created successfully', 
+        crew: newCrew 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to create crew member' 
+      });
+    }
+  } catch (error) {
+    console.error('Error creating crew member:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error creating crew member: ' + error.message 
+    });
+  }
+});
+
+// Update crew member - ENHANCED VERSION
+app.put('/api/crew/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const crewId = req.params.id;
+    console.log('Updating crew member:', crewId, 'with data:', req.body);
+    
+    const { 
+      full_name, 
+      crew_type, 
+      qualification, 
+      contact_number, 
+      status,
+      shift_start,
+      shift_end,
+      tasks_completed_today,
+      total_tasks_completed
+    } = req.body;
+    
+    const crewCollection = getCollection(collections.crewMembers);
+    
+    // Check if crew member exists
+    const existingCrew = await crewCollection.findOne({ crew_id: crewId });
+    if (!existingCrew) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Crew member not found' 
+      });
+    }
+    
+    // Build update object
+    const updateData = { updated_at: new Date() };
+    
+    if (full_name !== undefined) updateData.full_name = full_name.trim();
+    if (crew_type !== undefined) updateData.crew_type = crew_type;
+    if (qualification !== undefined) updateData.qualification = qualification.trim();
+    if (contact_number !== undefined) updateData.contact_number = contact_number.trim();
+    if (status !== undefined) updateData.status = status;
+    if (shift_start !== undefined) updateData.shift_start = shift_start;
+    if (shift_end !== undefined) updateData.shift_end = shift_end;
+    if (tasks_completed_today !== undefined) updateData.tasks_completed_today = parseInt(tasks_completed_today);
+    if (total_tasks_completed !== undefined) updateData.total_tasks_completed = parseInt(total_tasks_completed);
+    
+    const result = await crewCollection.updateOne(
+      { crew_id: crewId },
+      { $set: updateData }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Crew member not found' 
+      });
+    }
+    
+    // Get updated crew member
+    const updatedCrew = await crewCollection.findOne({ crew_id: crewId });
+    
+    res.json({ 
+      success: true, 
+      message: 'Crew member updated successfully',
+      crew: updatedCrew
+    });
+  } catch (error) {
+    console.error('Error updating crew member:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error updating crew member: ' + error.message 
+    });
+  }
+});
+
+// Delete crew member - FIXED VERSION
+app.delete('/api/crew/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const crewId = req.params.id;
+    console.log('Deleting crew member:', crewId);
+    
+    const crewCollection = getCollection(collections.crewMembers);
+    const groundServicesCollection = getCollection(collections.groundServices);
+    
+    // Check if crew member exists
+    const crew = await crewCollection.findOne({ crew_id: crewId });
+    if (!crew) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Crew member not found' 
+      });
+    }
+    
+    // Check if crew is on task
+    if (crew.status === 'on_task') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot delete crew member who is currently on task. Update status first.' 
+      });
+    }
+    
+    // Check for assigned tasks
+    const assignedTasks = await groundServicesCollection.countDocuments({
+      assigned_crew: crewId,
+      status: { $in: ['pending', 'in-progress'] }
+    });
+    
+    if (assignedTasks > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot delete crew member with ${assignedTasks} assigned task(s). Reassign tasks first.` 
+      });
+    }
+    
+    // Delete crew member
+    const result = await crewCollection.deleteOne({ crew_id: crewId });
+    
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Crew member not found' 
+      });
+    }
+    
+    // Remove crew assignment from completed tasks
+    await groundServicesCollection.updateMany(
+      { assigned_crew: crewId },
+      { $set: { assigned_crew: null } }
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Crew member deleted successfully',
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Error deleting crew member:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error deleting crew member: ' + error.message 
+    });
+  }
+});
+
+// Assign task to crew member
+app.post('/api/crew/:id/assign-task', requireAdminAuth, async (req, res) => {
+  try {
+    const crewId = req.params.id;
+    const { 
+      service_type, 
+      flight_code, 
+      notes, 
+      priority = 'medium',
+      estimated_duration_minutes = 30 
+    } = req.body;
+    
+    console.log('Assigning task to crew:', crewId, 'data:', req.body);
+    
+    if (!service_type || !flight_code) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Service type and flight code are required' 
+      });
+    }
+    
+    const crewCollection = getCollection(collections.crewMembers);
+    const groundServicesCollection = getCollection(collections.groundServices);
+    const flightsCollection = getCollection(collections.flights);
+    
+    // Verify crew exists and is available
+    const crew = await crewCollection.findOne({ crew_id: crewId });
+    if (!crew) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Crew member not found' 
+      });
+    }
+    
+    if (crew.status !== 'available') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Crew member is ${crew.status}. Only available crew can be assigned tasks.` 
+      });
+    }
+    
+    // Verify flight exists
+    const flight = await flightsCollection.findOne({ flight_code: flight_code });
+    if (!flight) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Flight not found' 
+      });
+    }
+    
+    // Create ground service task
+    const newService = {
+      service_id: generateId('GS-'),
+      service_type: service_type,
+      flight_code: flight_code,
+      status: 'pending',
+      assigned_crew: crewId,
+      scheduled_time: new Date(),
+      completed_time: null,
+      notes: notes || '',
+      priority: priority,
+      estimated_duration_minutes: parseInt(estimated_duration_minutes) || 30,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+    
+    const serviceResult = await groundServicesCollection.insertOne(newService);
+    
+    if (!serviceResult.acknowledged) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to create service task' 
+      });
+    }
+    
+    // Update crew status and increment task counters
+    const updateResult = await crewCollection.updateOne(
+      { crew_id: crewId },
+      { 
+        $set: { 
+          status: 'on_task',
+          updated_at: new Date()
+        },
+        $inc: {
+          tasks_completed_today: 1,
+          total_tasks_completed: 1
+        }
+      }
+    );
+    
+    if (updateResult.modifiedCount === 0) {
+      // Rollback service creation if crew update fails
+      await groundServicesCollection.deleteOne({ service_id: newService.service_id });
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to update crew status' 
+      });
+    }
+    
+    res.status(201).json({ 
+      success: true, 
+      message: 'Task assigned successfully',
+      service: newService,
+      crew: await crewCollection.findOne({ crew_id: crewId })
+    });
+  } catch (error) {
+    console.error('Error assigning task:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error assigning task: ' + error.message 
+    });
+  }
+});
+
+// Complete task for crew member
+app.post('/api/crew/:id/complete-task/:taskId', requireAdminAuth, async (req, res) => {
+  try {
+    const { id: crewId, taskId } = req.params;
+    
+    const crewCollection = getCollection(collections.crewMembers);
+    const groundServicesCollection = getCollection(collections.groundServices);
+    
+    // Verify crew exists
+    const crew = await crewCollection.findOne({ crew_id: crewId });
+    if (!crew) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Crew member not found' 
+      });
+    }
+    
+    // Verify task exists and is assigned to this crew
+    const task = await groundServicesCollection.findOne({ 
+      service_id: taskId,
+      assigned_crew: crewId 
+    });
+    
+    if (!task) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Task not found or not assigned to this crew member' 
+      });
+    }
+    
+    if (task.status === 'completed') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Task is already completed' 
+      });
+    }
+    
+    // Update task status
+    await groundServicesCollection.updateOne(
+      { service_id: taskId },
+      { 
+        $set: { 
+          status: 'completed',
+          completed_time: new Date(),
+          updated_at: new Date()
+        }
+      }
+    );
+    
+    // Update crew status back to available
+    await crewCollection.updateOne(
+      { crew_id: crewId },
+      { 
+        $set: { 
+          status: 'available',
+          updated_at: new Date()
+        }
+      }
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Task completed successfully',
+      task: await groundServicesCollection.findOne({ service_id: taskId })
+    });
+  } catch (error) {
+    console.error('Error completing task:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error completing task: ' + error.message 
+    });
+  }
+});
+
+// Get crew statistics
+app.get('/api/crew/stats', requireAdminAuth, async (req, res) => {
+  try {
+    const crewCollection = getCollection(collections.crewMembers);
+    const groundServicesCollection = getCollection(collections.groundServices);
+    
+    const totalCrew = await crewCollection.countDocuments({});
+    const availableCount = await crewCollection.countDocuments({ status: 'available' });
+    const onTaskCount = await crewCollection.countDocuments({ status: 'on_task' });
+    const offDutyCount = await crewCollection.countDocuments({ status: 'off_duty' });
+    
+    // Today's tasks
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const tasksToday = await groundServicesCollection.countDocuments({
+      created_at: { $gte: today, $lt: tomorrow }
+    });
+    
+    // Crew by type
+    const crewByType = await crewCollection.aggregate([
+      { 
+        $group: { 
+          _id: '$crew_type', 
+          count: { $sum: 1 },
+          available: { 
+            $sum: { 
+              $cond: [{ $eq: ['$status', 'available'] }, 1, 0] 
+            } 
+          }
+        } 
+      }
+    ]).toArray();
+    
+    // Today's completed tasks
+    const completedToday = await groundServicesCollection.countDocuments({
+      status: 'completed',
+      completed_time: { $gte: today, $lt: tomorrow }
+    });
+    
+    res.json({
+      success: true,
+      stats: {
+        totalCrew,
+        availableCount,
+        onTaskCount,
+        offDutyCount,
+        tasksToday,
+        completedToday,
+        crewByType: crewByType.reduce((acc, curr) => {
+          acc[curr._id] = { total: curr.count, available: curr.available };
+          return acc;
+        }, {})
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching crew stats:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching crew statistics: ' + error.message 
+    });
+  }
+});
