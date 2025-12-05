@@ -26,7 +26,7 @@ const collections = {
   baggage: 'baggage',
   groundServices: 'ground_services',
   users: 'users',
-  specialAssistance: 'special_assistance'
+  gate_logs: 'gate_logs'
 };
 
 let db;
@@ -52,7 +52,7 @@ async function connectDB() {
 function getCollection(collectionName) {
   return db.collection(collectionName);
 }
-connectDB();
+
 
 // ============================================
 // MIDDLEWARE CONFIGURATION
@@ -341,63 +341,102 @@ app.get('/logout', (req, res) => {
 });
 
 // ============================================
-// ADMIN DASHBOARD
+// ADMIN ROUTE 
 // ============================================
-app.get('section/passengers', requireAuth, async (req, res) => {
-  if (req.session.user.role === 'passenger') {
-    return res.redirect('/passenger');
-  }
-
-  try {
-    const flightsCollection = getCollection(collections.flights);
-    const gatesCollection = getCollection(collections.gates);
-    const aircraftCollection = getCollection(collections.aircraft);
-
-    const flights = await flightsCollection.find({}).toArray();
-    const gates = await gatesCollection.find({}).toArray();
-    const aircraft = await aircraftCollection.find({}).toArray();
-
-    const maintenanceStats = {
-      inMaintenance: await aircraftCollection.countDocuments({ operational_status: 'maintenance' }),
-      available: await aircraftCollection.countDocuments({ operational_status: 'available' }),
-      inService: await aircraftCollection.countDocuments({ operational_status: 'assigned' })
-    };
-
-    const aircraftList = aircraft.map(ac => ({
-      id: ac.aircraft_id,
-      type: ac.aircraft_type,
-      status: ac.operational_status,
-      statusIcon: ac.operational_status === 'available' ? '✅' : 
-                  ac.operational_status === 'maintenance' ? '🔧' : '🛫',
-      statusText: ac.operational_status === 'available' ? 'Ready' : 
-                  ac.operational_status === 'maintenance' ? 'Maintenance' : 'In Use'
-    }));
-
-    res.render('index', {
-      title: 'Airport Management System',
-      activeSection: 'passenger',
-      currentSection: 'Passenger Services',
-      user: req.session.user,
-      airlineName: 'HKAP Airlines',
-      passengerData: null,
-      flights: flights.map(f => ({
-        code: f.flight_code,
-        route: f.route_display,
-        gate: f.gate,
-        departure: f.scheduled_departure,
-        boarding: calculateBoardingTime(f.scheduled_departure),
-        status: f.flight_status
-      })),
-      gates: gates.map(g => g.gate_id),
-      aircraftList,
-      maintenanceStats
-    });
-  } catch (error) {
-    console.error('Error loading :', error);
-    res.status(500).send('Server error');
-  }
+app.get('/section/passengers', requireAdminAuth, async (req, res) => {
+    try {
+        const flightsCollection = getCollection(collections.flights);
+        const bookingsCollection = getCollection(collections.bookings);
+        const gatesCollection = getCollection(collections.gates);
+        const aircraftCollection = getCollection(collections.aircraft);
+        
+        // Get all flights with booking counts
+        const flights = await flightsCollection.find({}).toArray();
+        
+        // Get all gates
+        const gates = await gatesCollection.find({}).toArray();
+        
+        // Get all aircraft
+        const aircraft = await aircraftCollection.find({}).toArray();
+        
+        // Get booking counts for each flight
+        const flightsWithCounts = await Promise.all(flights.map(async (flight) => {
+            const bookedCount = await bookingsCollection.countDocuments({
+                flight_code: flight.flight_code,
+                booking_status: { $ne: 'cancelled' }
+            });
+            
+            const checkedInCount = await bookingsCollection.countDocuments({
+                flight_code: flight.flight_code,
+                booking_status: 'checked_in'
+            });
+            
+            // Get aircraft details if available
+            const aircraftDetails = flight.aircraft_id ? 
+                await aircraftCollection.findOne({ aircraft_id: flight.aircraft_id }) : null;
+            
+            return {
+                code: flight.flight_code,
+                route: flight.route_display || `${flight.origin_airport} → ${flight.destination_airport}`,
+                departure: flight.scheduled_departure || 'N/A',
+                gate: flight.gate || 'TBA',
+                aircraft: flight.aircraft_id || 'N/A',
+                aircraft_details: aircraftDetails,
+                status: flight.flight_status || 'scheduled',
+                total_seats: flight.total_seats || 180,
+                total_booked: bookedCount,
+                total_checked_in: checkedInCount || flight.total_checked_in || 0,
+                origin: flight.origin_airport,
+                destination: flight.destination_airport,
+                flight_date: flight.flight_date
+            };
+        }));
+        
+        // Format gates data
+        const formattedGates = gates.map(gate => {
+            // Find flight assigned to this gate
+            const assignedFlight = flights.find(f => f.gate === gate.gate_id);
+            
+            return {
+                id: gate.gate_id,
+                status: gate.status || 'available',
+                capacity: gate.capacity || 'N/A',
+                terminal: gate.terminal || 'Main',
+                facilities: gate.facilities || [],
+                current_flight: assignedFlight ? assignedFlight.flight_code : null,
+                current_flight_data: assignedFlight
+            };
+        });
+        
+        // Calculate statistics
+        const gateStats = {
+            total: formattedGates.length,
+            available: formattedGates.filter(g => g.status === 'available').length,
+            occupied: formattedGates.filter(g => g.status === 'occupied').length,
+            maintenance: formattedGates.filter(g => g.status === 'maintenance').length
+        };
+        
+        const flightStats = {
+            total: flights.length,
+            assigned: flights.filter(f => f.gate && f.gate !== 'TBA').length,
+            unassigned: flights.filter(f => !f.gate || f.gate === 'TBA').length,
+            departing: flights.filter(f => f.flight_status === 'boarding' || f.flight_status === 'gate_open').length,
+            arriving: flights.filter(f => f.flight_status === 'arrived' || f.flight_status === 'landed').length
+        };
+        
+        res.render('section/passengers', {
+            title: 'Passenger Services - Admin',
+            user: req.session.user,
+            flights: flightsWithCounts,
+            gates: formattedGates,
+            gateStats: gateStats,
+            flightStats: flightStats
+        });
+    } catch (error) {
+        console.error('Error loading passenger services page:', error);
+        res.status(500).send('Error loading passenger services page');
+    }
 });
-
 // ============================================
 // PASSENGER PORTAL
 // ============================================
@@ -4281,4 +4320,868 @@ app.get('/api/crew/stats', requireAdminAuth, async (req, res) => {
       message: 'Error fetching crew statistics: ' + error.message 
     });
   }
+});
+// ============================================
+// GATE ASSIGNMENT ROUTE
+// ============================================
+
+app.get('/section/gates', requireAdminAuth, async (req, res) => {
+  try {
+    const flightsCollection = getCollection(collections.flights);
+    const gatesCollection = getCollection(collections.gates);
+    
+    // Get all flights
+    const allFlights = await flightsCollection.find({}).sort({ scheduled_departure: 1 }).toArray();
+    
+    // Get all gates
+    const gates = await gatesCollection.find({}).sort({ gate_id: 1 }).toArray();
+    
+    // Format gates with current flight code (not object)
+    const formattedGates = gates.map(gate => {
+      // Find current flight for this gate
+      const currentFlight = allFlights.find(f => 
+        f.gate === gate.gate_id && 
+        (f.flight_status === 'boarding' || f.flight_status === 'gate_open' || f.flight_status === 'scheduled')
+      );
+      
+      return {
+        ...gate,
+        current_flight: currentFlight ? currentFlight.flight_code : null,
+        current_flight_data: currentFlight || null
+      };
+    });
+    
+    // Get flights needing gate assignment
+    const flightsNeedingGate = allFlights.filter(flight => 
+      !flight.gate || flight.gate === 'TBA' || flight.gate === 'N/A' || flight.gate === ''
+    );
+    
+    // Get flights with gate assigned
+    const flightsWithGate = allFlights.filter(flight => 
+      flight.gate && flight.gate !== 'TBA' && flight.gate !== 'N/A' && flight.gate !== ''
+    );
+    
+    // Calculate statistics
+    const gateStats = {
+      total: formattedGates.length,
+      available: formattedGates.filter(g => g.status === 'available').length,
+      occupied: formattedGates.filter(g => g.status === 'occupied').length,
+      maintenance: formattedGates.filter(g => g.status === 'maintenance').length,
+      reserved: formattedGates.filter(g => g.status === 'reserved').length
+    };
+    
+    const flightStats = {
+      total: allFlights.length,
+      assigned: flightsWithGate.length,
+      unassigned: flightsNeedingGate.length,
+      departing: allFlights.filter(f => f.flight_status === 'boarding' || f.flight_status === 'gate_open').length,
+      arriving: allFlights.filter(f => f.flight_status === 'arrived' || f.flight_status === 'landed').length
+    };
+    
+    res.render('section/gates', {
+      title: 'Gate Assignment Management - HKAP Airlines',
+      user: req.session.user,
+      gates: formattedGates,
+      flights: {
+        all: allFlights,
+        needing_gate: flightsNeedingGate,
+        with_gate: flightsWithGate
+      },
+      stats: {
+        gates: gateStats,
+        flights: flightStats
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error loading gate assignment page:', error);
+    res.status(500).send('Error loading gate management page');
+  }
+});
+// Helper function to generate time slots
+function generateTimeSlots() {
+  const slots = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      slots.push(time);
+    }
+  }
+  return slots;
+}
+
+// Helper function for gate compatibility
+function getGateCompatibilityData() {
+  return {
+    'A01-A20': ['Airbus A320', 'Airbus A321', 'Boeing 737'],
+    'B01-B15': ['Airbus A330', 'Boeing 777', 'Boeing 787'],
+    'C01-C10': ['Airbus A380', 'Boeing 747'],
+    'D01-D08': ['Regional Jets', 'Embraer E190', 'Bombardier CRJ']
+  };
+}
+// ============================================
+// GATE MANAGEMENT API ROUTES
+// ============================================
+
+// Get all gates
+app.get('/api/gates', requireAdminAuth, async (req, res) => {
+  try {
+    const gatesCollection = getCollection(collections.gates);
+    const gates = await gatesCollection.find({}).sort({ gate_id: 1 }).toArray();
+    res.json({ success: true, gates });
+  } catch (error) {
+    console.error('Error fetching gates:', error);
+    res.json({ success: false, message: 'Error fetching gates' });
+  }
+});
+
+// Get gate by ID
+app.get('/api/gates/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const gatesCollection = getCollection(collections.gates);
+    const gate = await gatesCollection.findOne({ gate_id: req.params.id });
+    
+    if (!gate) {
+      return res.json({ success: false, message: 'Gate not found' });
+    }
+    
+    // Get flights assigned to this gate
+    const flightsCollection = getCollection(collections.flights);
+    const flights = await flightsCollection.find({ 
+      gate: req.params.id,
+      flight_date: { 
+        $gte: new Date(new Date().setHours(0, 0, 0, 0))
+      }
+    }).sort({ scheduled_departure: 1 }).toArray();
+    
+    res.json({ 
+      success: true, 
+      gate: gate,
+      assigned_flights: flights
+    });
+  } catch (error) {
+    console.error('Error fetching gate:', error);
+    res.json({ success: false, message: 'Error fetching gate' });
+  }
+});
+
+// Assign gate to flight
+app.post('/api/gates/assign', requireAdminAuth, async (req, res) => {
+  try {
+    const { gate_id, flight_code, check_compatibility = true, override_warnings = false } = req.body;
+    
+    if (!gate_id || !flight_code) {
+      return res.json({ success: false, message: 'Gate ID and flight code are required' });
+    }
+    
+    const gatesCollection = getCollection(collections.gates);
+    const flightsCollection = getCollection(collections.flights);
+    const aircraftCollection = getCollection(collections.aircraft);
+    
+    // Get gate details
+    const gate = await gatesCollection.findOne({ gate_id: gate_id });
+    if (!gate) {
+      return res.json({ success: false, message: 'Gate not found' });
+    }
+    
+    // Get flight details
+    const flight = await flightsCollection.findOne({ flight_code: flight_code });
+    if (!flight) {
+      return res.json({ success: false, message: 'Flight not found' });
+    }
+    
+    // Check if gate is available
+    if (gate.status !== 'available' && !override_warnings) {
+      return res.json({ 
+        success: false, 
+        message: `Gate is currently ${gate.status}. Do you want to override?`,
+        requires_override: true
+      });
+    }
+    
+    // Check for gate conflicts
+    const conflictingFlights = await flightsCollection.find({
+      gate: gate_id,
+      flight_date: flight.flight_date,
+      scheduled_departure: { 
+        $gte: calculateTime(flight.scheduled_departure, -30),
+        $lte: calculateTime(flight.scheduled_departure, 30)
+      },
+      flight_code: { $ne: flight_code }
+    }).toArray();
+    
+    if (conflictingFlights.length > 0 && !override_warnings) {
+      const conflictInfo = conflictingFlights.map(f => ({
+        flight: f.flight_code,
+        departure: f.scheduled_departure,
+        status: f.flight_status
+      }));
+      
+      return res.json({
+        success: false,
+        message: 'Gate has scheduling conflicts',
+        conflicts: conflictInfo,
+        requires_override: true
+      });
+    }
+    
+    // Check aircraft-gate compatibility
+    if (check_compatibility && flight.aircraft_id) {
+      const aircraft = await aircraftCollection.findOne({ aircraft_id: flight.aircraft_id });
+      if (aircraft && !checkAircraftGateCompatibility(aircraft.aircraft_type, gate)) {
+        return res.json({
+          success: false,
+          message: `Aircraft ${aircraft.aircraft_type} may not be compatible with gate ${gate_id}`,
+          requires_override: true
+        });
+      }
+    }
+    
+    // Update flight with gate assignment
+    await flightsCollection.updateOne(
+      { flight_code: flight_code },
+      { 
+        $set: { 
+          gate: gate_id,
+          updated_at: new Date()
+        }
+      }
+    );
+    
+    // Update gate status
+    await gatesCollection.updateOne(
+      { gate_id: gate_id },
+      { 
+        $set: { 
+          status: 'occupied',
+          current_flight: flight_code,
+          updated_at: new Date()
+        }
+      }
+    );
+    
+    // Create gate assignment log
+    const gateLogsCollection = getCollection(collections.gate_logs);
+    await gateLogsCollection.insertOne({
+        log_id: generateId('GAL-'),
+        gate_id: gate_id,
+        flight_code: flight_code,
+        action: 'assigned',
+        assigned_by: req.session.user.username,
+        assigned_at: new Date(),
+        notes: `Gate assigned to flight ${flight_code}`,
+        created_at: new Date()});
+    
+    res.json({ 
+      success: true, 
+      message: `Gate ${gate_id} assigned to flight ${flight_code} successfully`,
+      assignment: {
+        gate: gate_id,
+        flight: flight_code,
+        departure: flight.scheduled_departure,
+        aircraft: flight.aircraft_id
+      }
+    });
+  } catch (error) {
+    console.error('Error assigning gate:', error);
+    res.json({ success: false, message: 'Error assigning gate: ' + error.message });
+  }
+});
+
+// Update gate status
+app.put('/api/gates/:id/status', requireAdminAuth, async (req, res) => {
+  try {
+    const { status, notes } = req.body;
+    
+    if (!status) {
+      return res.json({ success: false, message: 'Status is required' });
+    }
+    
+    const gatesCollection = getCollection(collections.gates);
+    
+    // Check if gate has active flights before changing status
+    if (status === 'maintenance' || status === 'closed') {
+      const flightsCollection = getCollection(collections.flights);
+      const activeFlights = await flightsCollection.find({
+        gate: req.params.id,
+        flight_status: { $in: ['scheduled', 'boarding', 'gate_open', 'delayed'] },
+        flight_date: { $gte: new Date() }
+      }).toArray();
+      
+      if (activeFlights.length > 0) {
+        return res.json({
+          success: false,
+          message: `Cannot set gate to ${status} - ${activeFlights.length} active flight(s) assigned`,
+          active_flights: activeFlights.map(f => ({
+            flight: f.flight_code,
+            departure: f.scheduled_departure,
+            status: f.flight_status
+          }))
+        });
+      }
+    }
+    
+    const updateData = { 
+      status: status,
+      updated_at: new Date()
+    };
+    
+    if (notes) updateData.notes = notes;
+    
+    if (status === 'available') {
+      updateData.current_flight = null;
+    }
+    
+    const result = await gatesCollection.updateOne(
+      { gate_id: req.params.id },
+      { $set: updateData }
+    );
+    
+    if (result.matchedCount === 0) {
+      return res.json({ success: false, message: 'Gate not found' });
+    }
+    
+    // Log status change
+    const gateLogsCollection = getCollection('gate_logs');
+    await gateLogsCollection.insertOne({
+      log_id: generateId('GAL-'),
+      gate_id: req.params.id,
+      action: 'status_change',
+      new_status: status,
+      changed_by: req.session.user.username,
+      changed_at: new Date(),
+      notes: notes || `Gate status changed to ${status}`,
+      created_at: new Date()
+    });
+    
+    res.json({ success: true, message: `Gate status updated to ${status}` });
+  } catch (error) {
+    console.error('Error updating gate status:', error);
+    res.json({ success: false, message: 'Error updating gate status' });
+  }
+});
+
+// Unassign gate from flight
+app.post('/api/gates/unassign', requireAdminAuth, async (req, res) => {
+  try {
+    const { flight_code } = req.body;
+    
+    if (!flight_code) {
+      return res.json({ success: false, message: 'Flight code is required' });
+    }
+    
+    const flightsCollection = getCollection(collections.flights);
+    const gatesCollection = getCollection(collections.gates);
+    
+    // Get flight details
+    const flight = await flightsCollection.findOne({ flight_code: flight_code });
+    if (!flight) {
+      return res.json({ success: false, message: 'Flight not found' });
+    }
+    
+    if (!flight.gate || flight.gate === 'TBA') {
+      return res.json({ success: false, message: 'Flight does not have a gate assigned' });
+    }
+    
+    // Update flight to remove gate assignment
+    await flightsCollection.updateOne(
+      { flight_code: flight_code },
+      { 
+        $set: { 
+          gate: 'TBA',
+          updated_at: new Date()
+        }
+      }
+    );
+    
+    // Update gate status to available
+    await gatesCollection.updateOne(
+      { gate_id: flight.gate },
+      { 
+        $set: { 
+          status: 'available',
+          current_flight: null,
+          updated_at: new Date()
+        }
+      }
+    );
+    
+    // Log the unassignment
+    const gateLogsCollection = getCollection(collections.gate_logs);
+    await gateLogsCollection.insertOne({
+        log_id: generateId('GAL-'),
+        gate_id: req.params.id,
+        action: 'status_change',
+        new_status: status,
+        changed_by: req.session.user.username,
+        changed_at: new Date(),
+        notes: notes || `Gate status changed to ${status}`,
+        created_at: new Date()
+    });
+    
+    res.json({ 
+      success: true, 
+      message: `Gate unassigned from flight ${flight_code} successfully` 
+    });
+  } catch (error) {
+    console.error('Error unassigning gate:', error);
+    res.json({ success: false, message: 'Error unassigning gate' });
+  }
+});
+
+// Get gate assignment history
+app.get('/api/gates/:id/history', requireAdminAuth, async (req, res) => {
+  try {
+    const gateLogsCollection = getCollection(collections.gate_logs);
+    const history = await gateLogsCollection.find({ 
+      gate_id: req.params.id 
+    }).sort({ created_at: -1 }).limit(50).toArray();
+    
+    res.json({ success: true, history });
+  } catch (error) {
+    console.error('Error fetching gate history:', error);
+    res.json({ success: false, message: 'Error fetching gate history' });
+  }
+});
+
+// Auto-assign gates for multiple flights
+app.post('/api/gates/auto-assign', requireAdminAuth, async (req, res) => {
+  try {
+    const { flight_codes = [] } = req.body;
+    
+    console.log('Auto-assign request:', flight_codes);
+    
+    const flightsCollection = getCollection(collections.flights);
+    const gatesCollection = getCollection(collections.gates);
+    const aircraftCollection = getCollection(collections.aircraft);
+    
+    // Get flights that actually need gate assignment
+    const flights = await flightsCollection.find({
+      flight_code: { $in: flight_codes },
+      $or: [
+        { gate: { $exists: false } },
+        { gate: null },
+        { gate: '' },
+        { gate: 'TBA' },
+        { gate: 'N/A' }
+      ]
+    }).toArray();
+    
+    console.log(`Found ${flights.length} flights needing gate assignment`);
+    
+    if (flights.length === 0) {
+      return res.json({ 
+        success: false, 
+        message: 'No flights found that need gate assignment' 
+      });
+    }
+    
+    // Get all available gates
+    const availableGates = await gatesCollection.find({ 
+      status: 'available' 
+    }).sort({ gate_id: 1 }).toArray();
+    
+    if (availableGates.length === 0) {
+      return res.json({
+        success: false,
+        message: 'No available gates for assignment'
+      });
+    }
+    
+    const assignments = [];
+    const errors = [];
+    
+    // Simple auto-assignment algorithm
+    for (const flight of flights) {
+      try {
+        let assigned = false;
+        
+        // Try to find a compatible gate
+        for (const gate of availableGates) {
+          // Check basic compatibility
+          if (checkBasicCompatibility(flight, gate)) {
+            // Check for time conflicts
+            const conflictingFlights = await flightsCollection.find({
+              gate: gate.gate_id,
+              flight_date: flight.flight_date,
+              scheduled_departure: { 
+                $gte: calculateTime(flight.scheduled_departure, -45),
+                $lte: calculateTime(flight.scheduled_departure, 45)
+              },
+              flight_code: { $ne: flight.flight_code }
+            }).toArray();
+            
+            if (conflictingFlights.length === 0) {
+              // Assign gate to flight
+              await flightsCollection.updateOne(
+                { flight_code: flight.flight_code },
+                { $set: { gate: gate.gate_id, updated_at: new Date() } }
+              );
+              
+              // Update gate status
+              await gatesCollection.updateOne(
+                { gate_id: gate.gate_id },
+                { $set: { 
+                  status: 'occupied', 
+                  current_flight: flight.flight_code, 
+                  updated_at: new Date() 
+                }}
+              );
+              
+              assignments.push({
+                flight: flight.flight_code,
+                gate: gate.gate_id,
+                departure: flight.scheduled_departure
+              });
+              
+              // Remove gate from available list
+              const gateIndex = availableGates.findIndex(g => g.gate_id === gate.gate_id);
+              if (gateIndex > -1) {
+                availableGates.splice(gateIndex, 1);
+              }
+              
+              assigned = true;
+              break;
+            }
+          }
+        }
+        
+        if (!assigned) {
+          errors.push({
+            flight: flight.flight_code,
+            reason: 'No compatible gate available'
+          });
+        }
+        
+      } catch (error) {
+        console.error(`Error assigning gate for flight ${flight.flight_code}:`, error);
+        errors.push({
+          flight: flight.flight_code,
+          reason: 'Error during assignment'
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Auto-assigned ${assignments.length} flight(s)`,
+      assignments: assignments,
+      errors: errors,
+      summary: {
+        total_flights: flights.length,
+        assigned: assignments.length,
+        failed: errors.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error in auto-assignment:', error);
+    res.json({ 
+      success: false, 
+      message: 'Error during auto-assignment: ' + error.message 
+    });
+  }
+});
+
+// Helper function for basic compatibility
+function checkBasicCompatibility(flight, gate) {
+  // Simple compatibility check
+  // In real implementation, check aircraft type vs gate facilities
+  return true;
+}
+
+// Helper function to calculate time
+function calculateTime(time, minutesToAdd) {
+  if (!time || typeof time !== 'string') return '00:00';
+  
+  try {
+    const [hours, minutes] = time.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes + minutesToAdd, 0, 0);
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  } catch (error) {
+    return '00:00';
+  }
+}
+
+// Helper functions
+function calculateTime(time, minutesToAdd) {
+  const [hours, minutes] = time.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes + minutesToAdd, 0, 0);
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function checkAircraftGateCompatibility(aircraftType, gate) {
+  // Simple compatibility check based on aircraft type and gate facilities
+  const largeAircraft = ['Airbus A380', 'Boeing 747', 'Airbus A350', 'Boeing 777'];
+  const mediumAircraft = ['Airbus A330', 'Boeing 787', 'Boeing 767'];
+  const smallAircraft = ['Airbus A320', 'Boeing 737', 'Embraer E190'];
+  
+  const gateCapabilities = {
+    'A01-A20': { maxSize: 'medium', hasJetBridge: true },
+    'B01-B15': { maxSize: 'large', hasJetBridge: true },
+    'C01-C10': { maxSize: 'jumbo', hasJetBridge: true },
+    'D01-D08': { maxSize: 'small', hasJetBridge: false }
+  };
+  
+  let aircraftSize = 'small';
+  if (largeAircraft.includes(aircraftType)) aircraftSize = 'jumbo';
+  else if (mediumAircraft.includes(aircraftType)) aircraftSize = 'large';
+  else if (smallAircraft.includes(aircraftType)) aircraftSize = 'medium';
+  
+  // Get gate prefix (e.g., 'A' from 'A12')
+  const gatePrefix = gate.gate_id.charAt(0);
+  const gateGroup = Object.keys(gateCapabilities).find(group => 
+    group.includes(gatePrefix)
+  );
+  
+  if (!gateGroup) return true; // Default to compatible if unknown gate
+  
+  const capabilities = gateCapabilities[gateGroup];
+  
+  // Check size compatibility
+  const sizeOrder = { 'small': 1, 'medium': 2, 'large': 3, 'jumbo': 4 };
+  if (sizeOrder[aircraftSize] > sizeOrder[capabilities.maxSize]) {
+    return false;
+  }
+  
+  // Check if jet bridge is needed
+  if (aircraftSize === 'jumbo' && !capabilities.hasJetBridge) {
+    return false;
+  }
+  
+  return true;
+}
+
+app.get('/section/gates', requireAdminAuth, async (req, res) => {
+  try {
+    const flightsCollection = getCollection(collections.flights);
+    const gatesCollection = getCollection(collections.gates);
+    const aircraftCollection = getCollection(collections.aircraft);
+    
+    // Get all flights
+    const allFlights = await flightsCollection.find({}).sort({ scheduled_departure: 1 }).toArray();
+    
+    // Get all gates
+    const gates = await gatesCollection.find({}).sort({ gate_id: 1 }).toArray();
+    
+    // If gates is empty, provide default data
+    if (!gates || gates.length === 0) {
+      console.log('No gates found in database, using sample data');
+      gates = [
+        { gate_id: 'A01', status: 'available', terminal: 'A', capacity: 150, facilities: [] },
+        { gate_id: 'A02', status: 'available', terminal: 'A', capacity: 150, facilities: [] }
+      ];
+    }
+    
+    // Get flights needing gate assignment
+    const flightsNeedingGate = allFlights.filter(flight => 
+      !flight.gate || flight.gate === 'TBA' || flight.gate === 'N/A'
+    );
+    
+    const flightsWithGate = allFlights.filter(flight => 
+      flight.gate && flight.gate !== 'TBA' && flight.gate !== 'N/A'
+    );
+    
+    // Calculate statistics
+    const gateStats = {
+      total: gates.length,
+      available: gates.filter(g => g.status === 'available').length,
+      occupied: gates.filter(g => g.status === 'occupied').length,
+      maintenance: gates.filter(g => g.status === 'maintenance').length,
+      reserved: gates.filter(g => g.status === 'reserved').length
+    };
+    
+    const flightStats = {
+      total: allFlights.length,
+      assigned: flightsWithGate.length,
+      unassigned: flightsNeedingGate.length,
+      departing: allFlights.filter(f => f.flight_status === 'boarding' || f.flight_status === 'gate_open').length,
+      arriving: allFlights.filter(f => f.flight_status === 'arrived' || f.flight_status === 'landed').length
+    };
+    
+    res.render('section/gates', {
+      title: 'Gate Assignment Management - HKAP Airlines',
+      user: req.session.user,
+      gates: gates,
+      flights: {
+        all: allFlights,
+        needing_gate: flightsNeedingGate,
+        with_gate: flightsWithGate
+      },
+      aircraft: [],
+      stats: {
+        gates: gateStats,
+        flights: flightStats
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error loading gate assignment page:', error);
+    // Render with default data in case of error
+    res.render('section/gates', {
+      title: 'Gate Assignment Management - HKAP Airlines',
+      user: req.session.user,
+      gates: [],
+      flights: {
+        all: [],
+        needing_gate: [],
+        with_gate: []
+      },
+      aircraft: [],
+      stats: {
+        gates: { total: 0, available: 0, occupied: 0, maintenance: 0, reserved: 0 },
+        flights: { total: 0, assigned: 0, unassigned: 0, departing: 0, arriving: 0 }
+      }
+    });
+  }
+});
+// ============================================
+// UNASSIGN GATE FROM FLIGHT
+// ============================================
+app.post('/api/gates/unassign-flight', requireAdminAuth, async (req, res) => {
+    try {
+        const { flight_code } = req.body;
+        
+        if (!flight_code) {
+            return res.json({ success: false, message: 'Flight code is required' });
+        }
+        
+        const flightsCollection = getCollection(collections.flights);
+        const gatesCollection = getCollection(collections.gates);
+        
+        // Get flight details
+        const flight = await flightsCollection.findOne({ 
+            flight_code: flight_code 
+        });
+        
+        if (!flight) {
+            return res.json({ success: false, message: 'Flight not found' });
+        }
+        
+        if (!flight.gate || flight.gate === 'TBA' || flight.gate === 'N/A') {
+            return res.json({ success: false, message: 'Flight does not have a gate assigned' });
+        }
+        
+        const gateId = flight.gate;
+        
+        // Update flight to remove gate assignment
+        await flightsCollection.updateOne(
+            { flight_code: flight_code },
+            { 
+                $set: { 
+                    gate: 'TBA',
+                    updated_at: new Date()
+                }
+            }
+        );
+        
+        // Update gate status to available
+        await gatesCollection.updateOne(
+            { gate_id: gateId },
+            { 
+                $set: { 
+                    status: 'available',
+                    current_flight: null,
+                    updated_at: new Date()
+                }
+            }
+        );
+        
+        // Create gate assignment log
+        const gateLogsCollection = getCollection(collections.gate_logs);
+        await gateLogsCollection.insertOne({
+            log_id: generateId('GAL-'),
+            gate_id: gateId,
+            flight_code: flight_code,
+            action: 'unassigned',
+            unassigned_by: req.session.user.username,
+            unassigned_at: new Date(),
+            notes: `Gate unassigned from flight ${flight_code}`,
+            created_at: new Date()
+        });
+        
+        res.json({ 
+            success: true, 
+            message: `Gate ${gateId} unassigned from flight ${flight_code} successfully` 
+        });
+    } catch (error) {
+        console.error('Error unassigning gate:', error);
+        res.json({ success: false, message: 'Error unassigning gate: ' + error.message });
+    }
+});
+// ============================================
+// UNASSIGN FLIGHT FROM GATE 
+// ============================================
+app.post('/api/gates/unassign-flight', requireAdminAuth, async (req, res) => {
+    try {
+        const { flight_code } = req.body;
+        
+        if (!flight_code) {
+            return res.json({ success: false, message: 'Flight code is required' });
+        }
+        
+        const flightsCollection = getCollection(collections.flights);
+        const gatesCollection = getCollection(collections.gates);
+        
+        // Get flight details
+        const flight = await flightsCollection.findOne({ 
+            flight_code: flight_code 
+        });
+        
+        if (!flight) {
+            return res.json({ success: false, message: 'Flight not found' });
+        }
+        
+        if (!flight.gate || flight.gate === 'TBA' || flight.gate === 'N/A') {
+            return res.json({ success: false, message: 'Flight does not have a gate assigned' });
+        }
+        
+        const gateId = flight.gate;
+        
+        // Update flight to remove gate assignment
+        await flightsCollection.updateOne(
+            { flight_code: flight_code },
+            { 
+                $set: { 
+                    gate: 'TBA',
+                    updated_at: new Date()
+                }
+            }
+        );
+        
+        // Update gate status to available
+        await gatesCollection.updateOne(
+            { gate_id: gateId },
+            { 
+                $set: { 
+                    status: 'available',
+                    current_flight: null,
+                    updated_at: new Date()
+                }
+            }
+        );
+        
+        // Create gate assignment log
+        const gateLogsCollection = getCollection(collections.gate_logs);
+        await gateLogsCollection.insertOne({
+            log_id: generateId('GAL-'),
+            gate_id: gateId,
+            flight_code: flight_code,
+            action: 'unassigned',
+            unassigned_by: req.session.user.username,
+            unassigned_at: new Date(),
+            notes: `Gate unassigned from flight ${flight_code}`,
+            created_at: new Date()
+        });
+        
+        res.json({ 
+            success: true, 
+            message: `Gate ${gateId} unassigned from flight ${flight_code} successfully` 
+        });
+    } catch (error) {
+        console.error('Error unassigning flight:', error);
+        res.json({ success: false, message: 'Error unassigning flight: ' + error.message });
+    }
 });

@@ -5611,7 +5611,269 @@ body.register-page {
     background: #667eea;
     color: white;
 }
+/* Gate Assignment Specific Styles */
+.gate-visualization {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
 
+.gate-visual {
+    padding: 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.gate-visual:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.gate-visual.available { 
+    border-color: #10b981; 
+    background: #f0fdf4; 
+}
+
+.gate-visual.occupied { 
+    border-color: #3b82f6; 
+    background: #eff6ff; 
+}
+
+.gate-visual.maintenance { 
+    border-color: #ef4444; 
+    background: #fef2f2; 
+}
+
+.gate-visual.reserved { 
+    border-color: #f59e0b; 
+    background: #fffbeb; 
+}
+
+.gate-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 5px 0;
+}
+
+.status-available { 
+    background: #10b981; 
+    color: white; 
+}
+
+.status-occupied { 
+    background: #3b82f6; 
+    color: white; 
+}
+
+.status-maintenance { 
+    background: #ef4444; 
+    color: white; 
+}
+
+.status-reserved { 
+    background: #f59e0b; 
+    color: white; 
+}
+
+.compatibility-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    background: #f8fafc;
+}
+
+.compatible { 
+    color: #10b981; 
+    font-weight: bold;
+}
+
+.incompatible { 
+    color: #ef4444; 
+    font-weight: bold;
+}
+
+.conflict-warning {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.gate-schedule {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.schedule-timeline {
+    display: flex;
+    overflow-x: auto;
+    padding: 20px 0;
+    gap: 10px;
+}
+
+.time-block {
+    min-width: 100px;
+    padding: 10px;
+    border-radius: 5px;
+    background: #f1f5f9;
+    text-align: center;
+}
+
+.time-block.occupied {
+    background: #3b82f6;
+    color: white;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.gate-modal {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+.btn-close:hover {
+    color: #000;
+}
+
+.alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-width: 300px;
+    z-index: 1001;
+    animation: slideIn 0.3s ease;
+}
+
+.alert-success {
+    background: #10b981;
+}
+
+.alert-error {
+    background: #ef4444;
+}
+
+.alert-warning {
+    background: #f59e0b;
+}
+
+.alert-info {
+    background: #3b82f6;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.filter-section {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.filter-section input,
+.filter-section select {
+    flex: 1;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+
+.success-message {
+    background: #f0fdf4;
+    border: 1px solid #10b981;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.error-message {
+    background: #fef2f2;
+    border: 1px solid #ef4444;
+    padding: 15px;
+    border-radius: 5px;
+}
 .btn-outline-success {
     background: transparent;
     border: 2px solid #48bb78;
@@ -5918,7 +6180,130 @@ body.register-page {
     border-top: 1px solid #e5e7eb;
 }
 
-/* Stats Grid Styles */
+/* Real-time Notification Styles */
+.realtime-notification {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-bottom: 10px;
+    padding: 15px;
+    border-left: 4px solid #3b82f6;
+    animation: slideInRight 0.3s ease;
+}
+
+.realtime-notification.info {
+    border-left-color: #3b82f6;
+    background: #dbeafe;
+}
+
+.realtime-notification.warning {
+    border-left-color: #f59e0b;
+    background: #fef3c7;
+}
+
+.realtime-notification.alert {
+    border-left-color: #ef4444;
+    background: #fee2e2;
+    animation: pulse 2s infinite;
+}
+
+.realtime-notification.urgent {
+    border-left-color: #dc2626;
+    background: #fca5a5;
+    animation: shake 0.5s ease-in-out;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.notification-header strong {
+    color: #2c3e50;
+    font-size: 14px;
+}
+
+.close-notification {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.close-notification:hover {
+    color: #374151;
+}
+
+.notification-body {
+    color: #4b5563;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.notification-time {
+    font-size: 11px;
+    color: #9ca3af;
+    text-align: right;
+    margin-top: 5px;
+}
+
+/* Animations */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+/* Flight Status Colors */
+.flight-status.scheduled { color: #3b82f6; }
+.flight-status.boarding { color: #f59e0b; }
+.flight-status.delayed { color: #ef4444; }
+.flight-status.departed { color: #10b981; }
+.flight-status.cancelled { color: #6b7280; }
+
+/* Gate Status */
+.gate-status.available { background: #d1fae5; color: #065f46; }
+.gate-status.occupied { background: #dbeafe; color: #1e40af; }
+.gate-status.maintenance { background: #fef3c7; color: #92400e; }
+
+/* Compatibility Warning */
+.compatibility-warning {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 6px;
+    padding: 10px;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.compatibility-warning::before {
+    content: "⚠️";
+    font-size: 20px;
+}
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
