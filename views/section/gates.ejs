@@ -1128,10 +1128,7 @@
                     
                     <div class="action-buttons">
                         <button class="btn btn-primary" id="checkCompatibilityBtn">
-                            🔍 Check Compatibility
-                        </button>
-                        <button class="btn btn-success" id="assignGateBtn" disabled>
-                            ✅ Assign Gate
+                            🔍 Check & Assign
                         </button>
                         <button class="btn btn-secondary" onclick="clearSelection()">
                             Clear
@@ -1201,7 +1198,6 @@
             </div>
 
             <!-- Assigned Flights Panel -->
-            <% if (flights && flights.with_gate && flights.with_gate.length > 0) { %>
             <div class="gate-card">
                 <h2 style="margin-bottom: 20px; color: #2c3e50;">Currently Assigned Flights</h2>
                 <div class="table-container">
@@ -1217,36 +1213,39 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <% flights.with_gate.forEach(flight => { %>
-                                <tr>
-                                    <td><strong><%= flight.flight_code %></strong></td>
-                                    <td><%= flight.route_display || `${flight.origin_airport} → ${flight.destination_airport}` %></td>
-                                    <td><%= flight.scheduled_departure %></td>
-                                    <td>
-                                        <span class="status-badge status-occupied" style="color: white;">
-                                            <%= flight.gate %>
-                                        </span>
-                                    </td>
-                                    <td><%= flight.aircraft_id || 'N/A' %></td>
-                                    <td>
-                                        <span class="status-badge" style="background: #f3f4f6; color: #374151;">
-                                            <%= flight.flight_status || 'scheduled' %>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-warning" 
-                                                onclick="unassignFlight('<%= flight.flight_code %>')">
-                                            Unassign
-                                        </button>
-                                    </td>
-                                </tr>
-                            <% }); %>
+                        <tbody id="assignedFlightsBody">
+                            <% if (flights && flights.with_gate && flights.with_gate.length > 0) { %>
+                                <% flights.with_gate.forEach(flight => { %>
+                                    <tr>
+                                        <td><strong><%= flight.flight_code %></strong></td>
+                                        <td><%= flight.route_display || `${flight.origin_airport} → ${flight.destination_airport}` %></td>
+                                        <td><%= flight.scheduled_departure %></td>
+                                        <td>
+                                            <span class="status-badge status-occupied" style="color: white;">
+                                                <%= flight.gate %>
+                                            </span>
+                                        </td>
+                                        <td><%= flight.aircraft_id || 'N/A' %></td>
+                                        <td>
+                                            <span class="status-badge" style="background: #f3f4f6; color: #374151;">
+                                                <%= flight.flight_status || 'scheduled' %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-warning" 
+                                                    onclick="unassignFlight('<%= flight.flight_code %>')">
+                                                Unassign
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <!-- Rows will be added here via JS -->
+                            <% } %>
                         </tbody>
                     </table>
                 </div>
             </div>
-            <% } %>
         </div>
     </div>
 
@@ -1346,11 +1345,6 @@
             checkCompatibilityBtn.addEventListener('click', checkCompatibility);
         }
         
-        const assignGateBtn = document.getElementById('assignGateBtn');
-        if (assignGateBtn) {
-            assignGateBtn.addEventListener('click', assignGate);
-        }
-        
         const autoAssignBtn = document.getElementById('autoAssignBtn');
         if (autoAssignBtn) {
             autoAssignBtn.addEventListener('click', showAutoAssignModal);
@@ -1429,10 +1423,7 @@
     }
 
     function updateAssignmentButton() {
-        const assignBtn = document.getElementById('assignGateBtn');
-        if (assignBtn) {
-            assignBtn.disabled = !(currentSelectedFlight && currentSelectedGate);
-        }
+        // Function intentionally left empty as the button is now dynamic
     }
 
     async function checkCompatibility() {
@@ -1444,7 +1435,7 @@
         const compatibilityDiv = document.getElementById('compatibilityCheck');
         if (!compatibilityDiv) return;
         
-        compatibilityDiv.innerHTML = '<div style="padding: 15px; background: #f8fafc; border-radius: 8px; text-align: center;">🔍 Checking compatibility...</div>';
+        compatibilityDiv.innerHTML = '<div style="padding: 15px; background: #f8fafc; border-radius: 8px; text-align: center;">🔍 Checking compatibility & Assigning...</div>';
         compatibilityDiv.style.display = 'block';
         
         try {
@@ -1464,24 +1455,108 @@
             const data = await response.json();
             
             if (data.success) {
+                // Success case - Gate is assigned automatically by the backend
                 compatibilityDiv.innerHTML = `
                     <div style="padding: 15px; background: #d1fae5; border-radius: 8px; border: 1px solid #10b981;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="color: #10b981; font-size: 20px;">✅</span>
                             <div>
-                                <strong style="color: #065f46;">Compatible</strong>
-                                <p style="margin: 5px 0 0 0; color: #065f46;">Gate ${currentSelectedGate} is suitable for flight ${currentSelectedFlight}</p>
+                                <strong style="color: #065f46;">Success</strong>
+                                <p style="margin: 5px 0 0 0; color: #065f46;">Gate ${currentSelectedGate} successfully assigned to flight ${currentSelectedFlight}</p>
                             </div>
                         </div>
                     </div>
                 `;
                 
-                const assignBtn = document.getElementById('assignGateBtn');
-                if (assignBtn) {
-                    assignBtn.disabled = false;
-                }
+                // --- UPDATE UI WITHOUT REFRESH ---
                 
-                gateCompatibilityCache[`${currentSelectedFlight}-${currentSelectedGate}`] = true;
+                // 1. Update Gate Visualization Card
+                const gateEl = document.querySelector(`.gate-visual[data-gate-id="${currentSelectedGate}"]`);
+                if (gateEl) {
+                    // Update classes
+                    gateEl.classList.remove('available', 'maintenance', 'reserved');
+                    gateEl.classList.add('occupied');
+                    
+                    // Update Status Text
+                    const statusEl = gateEl.querySelector('.gate-status');
+                    if (statusEl) {
+                        statusEl.className = 'gate-status status-occupied';
+                        statusEl.textContent = 'occupied';
+                    }
+                    
+                    // Add/Update Flight info on the card
+                    let flightEl = gateEl.querySelector('.current-flight');
+                    if (!flightEl) {
+                        flightEl = document.createElement('div');
+                        flightEl.className = 'current-flight';
+                        flightEl.style.cssText = 'margin-top: 8px; font-size: 12px; color: #666;';
+                        // Insert before the capacity info (last child usually)
+                        gateEl.insertBefore(flightEl, gateEl.lastElementChild);
+                    }
+                    flightEl.textContent = currentSelectedFlight;
+                }
+
+                // 2. Extract Data from "Flights Needing Assignment" Table BEFORE removing
+                const flightRows = document.querySelectorAll('#flightsTable tr');
+                let flightInfo = {
+                    code: currentSelectedFlight,
+                    route: 'N/A',
+                    departure: 'N/A',
+                    aircraft: 'N/A',
+                    status: 'scheduled'
+                };
+
+                flightRows.forEach(row => {
+                    // Assuming columns are: Code, Route, Departure, Aircraft, Status, Actions
+                    if (row.cells[0].innerText.includes(currentSelectedFlight)) {
+                        flightInfo.route = row.cells[1].innerText;
+                        flightInfo.departure = row.cells[2].innerText;
+                        flightInfo.aircraft = row.cells[3].innerText;
+                        // Status might be inside a span/badge
+                        flightInfo.status = row.cells[4].innerText.trim();
+                        
+                        // Hide row from "Needing Assignment" table
+                        row.style.display = 'none';
+                    }
+                });
+
+                // 3. Add to "Currently Assigned Flights" Table
+                const assignedTableBody = document.getElementById('assignedFlightsBody');
+                if (assignedTableBody) {
+                    const newRow = `
+                        <tr>
+                            <td><strong>${flightInfo.code}</strong></td>
+                            <td>${flightInfo.route}</td>
+                            <td>${flightInfo.departure}</td>
+                            <td><span class="status-badge status-occupied" style="color: white;">${currentSelectedGate}</span></td>
+                            <td>${flightInfo.aircraft}</td>
+                            <td><span class="status-badge" style="background: #f3f4f6; color: #374151;">${flightInfo.status}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick="unassignFlight('${flightInfo.code}')">Unassign</button>
+                            </td>
+                        </tr>
+                    `;
+                    // Prepend or append the new row
+                    assignedTableBody.insertAdjacentHTML('afterbegin', newRow);
+                }
+
+                // 4. Remove flight from dropdown
+                const flightSelect = document.getElementById('flightSelect');
+                if (flightSelect) {
+                    const optionToRemove = flightSelect.querySelector(`option[value="${currentSelectedFlight}"]`);
+                    if (optionToRemove) optionToRemove.remove();
+                    flightSelect.value = ""; 
+                }
+
+                // 5. Reset Gate Selection
+                const gateSelect = document.getElementById('gateSelect');
+                if(gateSelect) gateSelect.value = "";
+                
+                currentSelectedFlight = null;
+                currentSelectedGate = null;
+                updateAssignmentButton();
+
+                showAlert('Gate assigned successfully', 'success');
                 
             } else if (data.requires_override) {
                 let conflictsHtml = '';
@@ -1515,6 +1590,7 @@
                     </div>
                 `;
             } else {
+                // Error case
                 compatibilityDiv.innerHTML = `
                     <div style="padding: 15px; background: #fee2e2; border-radius: 8px; border: 1px solid #ef4444;">
                         <div style="display: flex; align-items: center; gap: 10px;">
