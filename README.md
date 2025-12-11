@@ -32,3 +32,5 @@ PS C:\> npm start
 
 FYI: IF you don't want to set those things, just click the link in the report to use the web version of it
 
+(Azure system log need upgrade the plan and need pay for it)
+
